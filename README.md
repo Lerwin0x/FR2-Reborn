@@ -1,8 +1,8 @@
-# 🏁 Fun Run 2: Reborn (Solar2D Edition)
+#  Fun Run 2: Reborn (Solar2D Edition)
 
 > **A complete, enhanced remake of the classic multiplayer racing game — built from scratch in Solar2D with modern features and polished gameplay.**
 
-## 🎮 About the Project
+##  About the Project
 
 Fun Run 2: Reborn is a fully reimagined version of the beloved multiplayer racing game, rebuilt from the ground up using [Solar2D (formerly Corona SDK)](https://solar2d.com/). This project combines the chaotic fun and competitive spirit of the original with modern enhancements, improved performance, and expanded features.
 
@@ -14,9 +14,9 @@ Fun Run 2: Reborn is a fully reimagined version of the beloved multiplayer racin
 
 ---
 
-## ✨ Features
+##  Features
 
-### 🎯 **Core Gameplay**
+###  **Core Gameplay**
 - ✅ **Classic side-scrolling racing** with smooth physics
 - ✅ **Multiplayer support** for up to 4 players (local networking)
 - ✅ **Character abilities** - Jump, double jump, slide, and wall jump
@@ -24,14 +24,14 @@ Fun Run 2: Reborn is a fully reimagined version of the beloved multiplayer racin
 - ✅ **Environmental hazards** - Spikes, water, moving platforms
 - ✅ **Multiple level themes** - Forest, Desert, City, and Ice worlds
 
-### 🎨 **Visuals & Audio**
+###  **Visuals & Audio**
 - ✅ **Enhanced graphics** with smooth animations
 - ✅ **9 unique characters** with different rarities and abilities
 - ✅ **Comprehensive sound system** with music and effects
 - ✅ **Visual feedback** for actions, hits, and achievements
 - ✅ **Modern UI design** with intuitive navigation
 
-### 🛒 **Progression System**
+###  **Progression System**
 - ✅ **Dual currency system** - Coins and Gems
 - ✅ **Character shop** with unlockable racers
 - ✅ **Cosmetic items** - Hats, trails, and customizations
@@ -39,7 +39,7 @@ Fun Run 2: Reborn is a fully reimagined version of the beloved multiplayer racin
 - ✅ **Achievement system** with unlock rewards
 - ✅ **Level completion tracking** and statistics
 
-### 🌐 **Multiplayer & Social**
+###  **Multiplayer & Social**
 - ✅ **Local multiplayer** with device discovery
 - ✅ **Real-time synchronization** of all game events
 - ✅ **Chat system** for player communication
@@ -47,7 +47,7 @@ Fun Run 2: Reborn is a fully reimagined version of the beloved multiplayer racin
 - 🚧 **Online multiplayer** (planned for future updates)
 - 🚧 **Global leaderboards** (planned)
 
-### ⚙️ **Technical Features**
+###  **Technical Features**
 - ✅ **Modular architecture** for easy expansion
 - ✅ **Comprehensive save system** with data validation
 - ✅ **Asset management** with organized directory structure
@@ -57,7 +57,7 @@ Fun Run 2: Reborn is a fully reimagined version of the beloved multiplayer racin
 
 ---
 
-## 🚀 Quick Start
+##  Quick Start
 
 ### **Requirements**
 - Solar2D SDK (2023.3686 or newer)
@@ -65,7 +65,7 @@ Fun Run 2: Reborn is a fully reimagined version of the beloved multiplayer racin
 - 2GB RAM minimum, 4GB recommended
 - OpenGL ES 2.0 support
 
-## 🎮 How to Play
+##  How to Play
 
 ### **Basic Controls**
 - **Jump:** Tap screen / Spacebar
@@ -79,11 +79,11 @@ Fun Run 2: Reborn is a fully reimagined version of the beloved multiplayer racin
 3. **Time Trial:** Beat your best times on each level
 
 ### **Power-ups**
-- **⚡ Lightning:** Stun nearby opponents
-- **🚀 Speed Boost:** Temporary speed increase
-- **🌟 Shield:** Protect from one attack
-- **⚡ Magnet:** Attract nearby collectibles
-- **🔥 Fire Trail:** Leave damaging trail behind you
+- **Lightning:** Stun nearby opponents
+- **Speed Boost:** Temporary speed increase
+- **Shield:** Protect from one attack
+- **Magnet:** Attract nearby collectibles
+- **Fire Trail:** Leave damaging trail behind you
 
 ### **Progression**
 - Complete races to earn **coins** and **experience**
@@ -93,7 +93,7 @@ Fun Run 2: Reborn is a fully reimagined version of the beloved multiplayer racin
 
 ---
 
-## 🛠️ Development
+##  Development
 
 ### **Architecture Overview**
 The game uses a modular architecture with clear separation of concerns:
@@ -135,7 +135,7 @@ We welcome contributions! Please:
 
 ---
 
-## 📋 Roadmap
+##  Roadmap
 
 ### **Version 1.0 (Current)**
 - ✅ Core gameplay mechanics
@@ -160,7 +160,7 @@ We welcome contributions! Please:
 
 ---
 
-## 📄 License & Disclaimer
+##  License & Disclaimer
 
 **License:** MIT License - See [LICENSE](LICENSE) for details
 
