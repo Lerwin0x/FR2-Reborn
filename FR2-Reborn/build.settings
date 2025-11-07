@@ -1,0 +1,21 @@
+-- Source: OriginalSourceCode/AndroidManifest.xml (rewritten)
+-- Behavior inferred from DecompiledLua/configuration.lua (rewritten)
+
+settings = {
+    orientation = {
+        default = "landscapeRight",
+        supported = { "landscapeRight", "landscapeLeft" }
+    },
+    iphone = {
+        plist = {
+            UIStatusBarHidden = true,
+            CFBundleDisplayName = "FR2 Reborn"
+        }
+    },
+    android = {
+        versionCode = "1",
+        usePermissions = {
+            "android.permission.INTERNET"
+        }
+    }
+}
