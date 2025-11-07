@@ -14,7 +14,7 @@ settings = {
     },
     android = {
         versionCode = "1",
-        usePermissions = {
+        usesPermissions = {
             "android.permission.INTERNET"
         }
     }

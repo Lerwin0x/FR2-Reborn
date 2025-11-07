@@ -13,6 +13,11 @@ FR2-Reborn is a Solar2D reimplementation of Dirtybit's Fun Run 2 using clean Lua
 2. Open `FR2-Reborn/main.lua` from this workspace.
 3. The app loads into the boot scene, transitions to the menu, and can start a single-device race.
 
+## Controls
+
+- **Jump**: Press `Space` on keyboard or tap the on-screen blue jump button.
+- **Power-Up**: Press `X` on keyboard or tap the orange power button to activate the equipped item (currently a speed boost).
+
 ## Running Tests
 
 ```sh
@@ -21,15 +26,15 @@ lua tests/test_random.lua
 
 ## System Provenance
 
-| System             | OriginalSourceCode Reference                           | DecompiledLua Reference                    |
-| ------------------ | ------------------------------------------------------ | ------------------------------------------ |
-| Boot + Menu flow   | `assets/config/config.json`, `assets/images/gui`       | `3.lua`, `images.gui.clan_v2.emblem.*`     |
-| Race loop          | `assets/config/bonusRaceConfig.json`, `assets/lua/map` | `lua.game.effects.fireworksHandler.lua`    |
-| Runner dynamics    | `assets/config/config.json`                            | `lua.game.powerups.puArmor.lua`            |
-| Power-ups registry | `assets/config/storeConfig.json`                       | `lua.game.powerups.powerupsImageSheet.lua` |
-| HUD + Results UI   | `assets/images/gui/postgame`                           | `images.gui.postgame.adCoins.adCoins.lua`  |
-| Audio stubs        | `assets/sound`                                         | `lua.ads.audioModule.lua`                  |
-| Networking stub    | `assets/config/awards.json`                            | `lua.ads.rewardedVideoPoolInfo.lua`        |
+| System             | OriginalSourceCode Reference                                                                                     | DecompiledLua Reference                                    |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| Boot + Menu flow   | `assets/config/config.json`, `assets/images/gui`                                                                 | `3.lua`, `images.gui.clan_v2.emblem.*`                     |
+| Race loop          | `assets/config/map/0.json`, `assets/images/map/forest/background/*`                                              | `lua.game.effects.fireworksHandler.lua`                    |
+| Runner dynamics    | `assets/config/config.json`, `assets/config/map/0.json`                                                          | `lua.game.powerups.puArmor.lua`                            |
+| Power-ups registry | `assets/config/storeConfig.json`                                                                                 | `lua.game.powerups.powerupsImageSheet.lua`                 |
+| HUD + Controls     | `assets/images/game/countdown*.png`, `assets/images/game/buttonJump.png`, `assets/images/game/buttonPowerup.png` | `images.gui.postgame.adCoins.adCoins.lua`, `lua.game.menu` |
+| Audio stubs        | `assets/sound/sfx_button_press.wav`, `assets/sound/sfx_jump.wav`                                                 | `lua.ads.audioModule.lua`                                  |
+| Networking stub    | `assets/config/awards.json`                                                                                      | `lua.ads.rewardedVideoPoolInfo.lua`                        |
 
 ## Project Layout
 
@@ -39,6 +44,6 @@ lua tests/test_random.lua
 - `game/`: Gameplay domain modules (constants, runner, track, obstacles, powerups, items, match).
 - `ui/`: HUD and widget helpers.
 - `assets/`: Copied art/audio/content from OriginalSourceCode/assets.
-- `Docs/`: Feature map pointer, assumptions, and porting notes.
+- `Docs/`: Feature map pointer, assumptions, porting notes, and asset manifest.
 - `tests/`: Deterministic logic tests.
 - `QA_CHECKLIST.md`: Lightweight testing guide.

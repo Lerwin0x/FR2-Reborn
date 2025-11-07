@@ -4,6 +4,7 @@
 local composer = require("composer")
 local asset = require("engine.asset")
 local widgets = require("ui.widgets")
+local audio = require("engine.audio")
 local scene = composer.newScene()
 
 function scene:create(event)
@@ -31,6 +32,7 @@ function scene:create(event)
     label = "Start Race",
     labelColor = { 0.1, 0.1, 0.1 },
     onRelease = function()
+      audio.playSfx("menu_button")
       composer.gotoScene("scenes.race", { effect = "slideLeft", time = 300 })
     end
   })
