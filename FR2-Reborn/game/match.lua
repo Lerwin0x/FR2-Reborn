@@ -420,6 +420,25 @@ function M.newLocalMatch(options)
     return position
   end
 
+  function match:getStandings()
+    -- Return all racers sorted by their current position (furthest ahead first)
+    local standings = {}
+
+    -- Copy racers array
+    for i = 1, #racers do
+      standings[i] = racers[i]
+    end
+
+    -- Sort by x position (descending)
+    table.sort(standings, function(a, b)
+      if not a or not a.runner or not a.runner.position then return false end
+      if not b or not b.runner or not b.runner.position then return true end
+      return a.runner.position.x > b.runner.position.x
+    end)
+
+    return standings
+  end
+
   function match:getResults()
     return summary.results
   end

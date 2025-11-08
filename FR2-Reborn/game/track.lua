@@ -659,53 +659,78 @@ function M.newTrack(mapId)
     { view = foliageFore, ratio = 0.55 }
   }
 
-  local decorBackGroup = displayApi.newGroup()
-  local backTileGroup = displayApi.newGroup()
-  local mainTileGroup = displayApi.newGroup()
-  local specialTileGroup = displayApi.newGroup()
-  local segmentGroup = displayApi.newGroup()
-  local frontTileGroup = displayApi.newGroup()
-  local decorFrontGroup = displayApi.newGroup()
+  -- Use asset system for tile rendering
+  local mapPath = string.format("assets/config/map/%s.json", mapId or constants.track.defaultMap)
 
-  worldGroup:insert(decorBackGroup)
-  worldGroup:insert(backTileGroup)
-  worldGroup:insert(mainTileGroup)
-  worldGroup:insert(specialTileGroup)
-  worldGroup:insert(segmentGroup)
-  worldGroup:insert(frontTileGroup)
-  worldGroup:insert(decorFrontGroup)
+  -- Create tile layers group
+  local tilesGroup = displayApi.newGroup()
+  worldGroup:insert(tilesGroup)
 
-  local tileTargets = {
-    backlayer = backTileGroup,
-    backgroundlayer = backTileGroup,
-    background = backTileGroup,
-    mainlayer = mainTileGroup,
-    main = mainTileGroup,
-    track = mainTileGroup,
-    terrain = mainTileGroup,
-    special = specialTileGroup,
-    speciallayer = specialTileGroup,
-    special2 = specialTileGroup,
-    proplayer = frontTileGroup,
-    proplayerlayer = frontTileGroup,
-    proplayer2 = frontTileGroup,
-    props = frontTileGroup,
-    proplayers = frontTileGroup
+  -- Load tile sheets for this theme using asset system
+  local tileSheets = {
+    tiles = asset.newImageSheet(theme .. "_tiles"),
+    props = asset.newImageSheet(theme .. "_props"),
+    animated = asset.newImageSheet(theme .. "_special")
   }
 
-  for index = 1, #(mapData.layers or {}) do
-    local layer = mapData.layers[index]
-    if layer.type == "tilelayer" and layer.visible ~= false then
-      local normalizedName = normalizeLayerName(layer.name)
-      local targetGroup = tileTargets[normalizedName] or mainTileGroup
-      renderTileLayer(layer, tilesetEntries, tileWidth, tileHeight, targetGroup)
-    elseif layer.type == "objectgroup" and layer.visible ~= false then
-      renderObjectLayer(layer, theme, propertyScale, {
-        background = decorBackGroup,
-        foreground = decorFrontGroup
-      })
+  -- Render tiles from map data
+  if mapData.layers then
+    for _, layer in ipairs(mapData.layers) do
+      if layer.type == "tilelayer" and layer.data and layer.visible ~= false then
+        local layerGroup = displayApi.newGroup()
+        tilesGroup:insert(layerGroup)
+
+        local dataIndex = 1
+        for row = 1, layer.height do
+          for col = 1, layer.width do
+            local gid = layer.data[dataIndex]
+            dataIndex = dataIndex + 1
+
+            if gid and gid > 0 then
+              local sheet, frame
+
+              -- Determine which sheet and frame to use based on GID ranges
+              if gid >= 1 and gid <= 90 then
+                -- tiles.png (120 frames available)
+                sheet = tileSheets.tiles
+                frame = gid
+              elseif gid >= 91 and gid <= 180 then
+                -- tiles.png (flipped/rotated)
+                sheet = tileSheets.tiles
+                frame = gid - 90
+              elseif gid >= 181 and gid <= 260 then
+                -- props.png (60 frames available, clamp to avoid overflow)
+                sheet = tileSheets.props
+                frame = math.min(gid - 180, 60)
+              elseif gid >= 261 and gid <= 340 then
+                -- props.png (flipped/rotated, clamp to 60 frames)
+                sheet = tileSheets.props
+                frame = math.min(gid - 260, 60)
+              elseif gid >= 341 and gid <= 346 then
+                -- animatedTiles.png (30 frames available)
+                sheet = tileSheets.animated
+                frame = gid - 340
+              end
+
+              if sheet and frame then
+                local tile = displayApi.newImage(layerGroup, sheet, frame)
+                if tile then
+                  tile.anchorX = 0
+                  tile.anchorY = 0
+                  tile.x = (col - 1) * tileWidth
+                  tile.y = (row - 1) * tileHeight
+                end
+              end
+            end
+          end
+        end
+      end
     end
   end
+
+  -- Create ground segments for collision detection
+  local segmentGroup = displayApi.newGroup()
+  worldGroup:insert(segmentGroup)
 
   for column = 1, mapWidth do
     local groundY = samples[column]
@@ -723,6 +748,7 @@ function M.newTrack(mapId)
   local track = {
     view = rootGroup,
     world = worldGroup,
+    tiles = tilesGroup, -- Tile layers group
     parallax = parallaxLayers,
     samples = samples,
     mapWidth = mapWidth,
@@ -736,17 +762,6 @@ function M.newTrack(mapId)
     goalY = goalWorldY,
     length = trackLength,
     groundGroup = segmentGroup,
-    tileGroup = mainTileGroup,
-    tileLayers = {
-      back = backTileGroup,
-      main = mainTileGroup,
-      special = specialTileGroup,
-      front = frontTileGroup
-    },
-    decorGroups = {
-      back = decorBackGroup,
-      front = decorFrontGroup
-    },
     theme = theme,
     name = properties.name or "Race",
     id = properties.id or mapId or constants.track.defaultMap

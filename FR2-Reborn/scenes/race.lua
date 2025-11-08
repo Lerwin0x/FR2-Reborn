@@ -88,6 +88,46 @@ function scene:create(event)
   })
   positionText:setFillColor(1, 1, 1) -- White color
 
+  -- Position indicators at bottom (4 runners) - MOVED FURTHER DOWN
+  local positionIndicators = {}
+  local indicatorWidth = 60
+  local indicatorHeight = 60
+  local spacing = 20
+  local totalWidth = (indicatorWidth * 4) + (spacing * 3)
+  local startX = (contentWidth - totalWidth) / 2
+  local bottomY = contentHeight - displayApi.safeScreenOriginY - 80 -- Much lower, closer to bottom
+
+  for i = 1, 4 do
+    local indicator = displayApi.newGroup()
+    hudGroup:insert(indicator)
+
+    -- Background circle
+    local circle = displayApi.newCircle(indicator, 0, 0, indicatorWidth / 2)
+    circle:setFillColor(0.2, 0.2, 0.2, 0.7)
+    circle.strokeWidth = 3
+    circle:setStrokeColor(1, 1, 1, 0.8)
+
+    -- Position number
+    local posNum = displayApi.newText({
+      parent = indicator,
+      text = tostring(i),
+      x = 0,
+      y = 0,
+      font = "assets/fonts/JungleAdventurer.ttf",
+      fontSize = 32
+    })
+    posNum:setFillColor(1, 1, 1)
+
+    indicator.x = startX + (i - 1) * (indicatorWidth + spacing) + indicatorWidth / 2
+    indicator.y = bottomY
+    indicator.circle = circle
+    indicator.posNum = posNum
+
+    positionIndicators[i] = indicator
+  end
+
+  self.positionIndicators = positionIndicators
+
   -- Countdown sprites (3, 2, 1, GO!)
   local countdownSprites = {}
   local countdownSequence = {
@@ -143,32 +183,35 @@ function scene:create(event)
   jumpButton.x = contentWidth - 20  -- Fixed alignment from right edge
   jumpButton.y = contentHeight - 20 -- Fixed alignment from bottom
 
-  -- Powerup icon overlay (centered on powerButton)
+  -- Powerup icon overlay (question mark - centered on powerButton)
   local powerIcon = displayApi.newImageRect(
     overlay,
-    "assets/images/game/black.png",
-    100,
-    100
+    "assets/images/game/powerups/icons/mapIcon.png", -- Question mark icon
+    80,
+    80
   )
   powerIcon.anchorX = 0.5
   powerIcon.anchorY = 0.5
-  powerIcon.x = powerButton.x + 70 -- Center on button (half of button width)
-  powerIcon.y = powerButton.y - 70 -- Center on button (half of button height)
-  powerIcon.alpha = 0              -- Initially invisible
+  powerIcon.x = powerButton.x + (powerButton.width * 0.5)  -- Center on button
+  powerIcon.y = powerButton.y - (powerButton.height * 0.5) -- Center on button
+  powerIcon.alpha = 0                                      -- Initially invisible
 
-  -- Pause button (top right) - exact coordinates from original
+  -- Pause button (top right) - moved more to left and made functional
   local pauseButton = newActionButton(overlay, {
     id = "ui_pause_button",
     width = 100,
     height = 100,
     onRelease = function()
-      -- TODO: Implement pause menu
-      print("Pause button pressed")
+      -- Exit to menu
+      composer.gotoScene("scenes.menu", {
+        effect = "slideRight",
+        time = 400
+      })
     end
   })
   pauseButton.anchorX = 1
   pauseButton.anchorY = 0
-  pauseButton.x = displayApi.safeScreenOriginX + displayApi.actualContentWidth - 20
+  pauseButton.x = displayApi.safeScreenOriginX + displayApi.actualContentWidth - 80 -- Moved left
   pauseButton.y = displayApi.safeScreenOriginY + 20
 
   self.match = match
@@ -261,6 +304,25 @@ function scene:enterFrame(event)
       self.positionText.text = getOrdinal(position)
     end
 
+    -- Update position indicators at bottom
+    if self.positionIndicators then
+      local standings = self.match:getStandings() or {}
+      for i = 1, 4 do
+        local indicator = self.positionIndicators[i]
+        if indicator and standings[i] then
+          local runner = standings[i]
+          -- All indicators white, highlight player's position with brighter white
+          if runner.id == "player" then
+            indicator.circle:setFillColor(1, 1, 1, 0.9) -- Bright white for player
+            indicator.circle:setStrokeColor(1, 1, 1, 1) -- White border
+          else
+            indicator.circle:setFillColor(0.2, 0.2, 0.2, 0.7)
+            indicator.circle:setStrokeColor(1, 1, 1, 0.8)
+          end
+        end
+      end
+    end
+
     -- Update countdown sprites
     if self.match:getState() == "countdown" then
       showCountdownSprite(self.countdownSprites, self.match:getCountdown())
@@ -270,16 +332,12 @@ function scene:enterFrame(event)
       end
     end
 
-    -- Update powerup icon display - show on powerup button
+    -- Update powerup icon display - show question mark when powerup available
     if self.powerIcon then
       local slot = self.match:getPowerSlot()
       if slot and slot.icon then
-        -- Player has a powerup - show icon on button
+        -- Player has a powerup - show question mark icon
         self.powerIcon.alpha = 1
-        local texture = asset.requireTexture(slot.icon)
-        if texture then
-          self.powerIcon.fill = { type = "image", filename = texture }
-        end
       else
         -- No powerup - hide icon
         self.powerIcon.alpha = 0

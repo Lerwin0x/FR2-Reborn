@@ -117,12 +117,76 @@ function scene:create(event)
   })
   positionText:setFillColor(1, 0.9, 0.2)
 
+  -- Display all runners/animals with positions
+  local rankings = results.rankings or {}
+  if #rankings > 0 then
+    local rankingGroup = displayApi.newGroup()
+    group:insert(rankingGroup)
+
+    local rankStartY = panel.y - 100
+    local rankSpacing = 45
+
+    for i = 1, math.min(4, #rankings) do
+      local runner = rankings[i]
+      local rankY = rankStartY + (i - 1) * rankSpacing
+
+      -- Rank background
+      local rankBg = displayApi.newRoundedRect(
+        rankingGroup,
+        contentWidth * 0.5,
+        rankY,
+        380,
+        38,
+        6
+      )
+      if runner.id == "player" then
+        rankBg:setFillColor(0.2, 0.4, 0.2, 0.8) -- Green for player
+      else
+        rankBg:setFillColor(0.15, 0.15, 0.2, 0.7)
+      end
+
+      -- Position number
+      local posNum = displayApi.newText({
+        parent = rankingGroup,
+        text = getOrdinal(i),
+        x = contentWidth * 0.5 - 160,
+        y = rankY,
+        font = "assets/fonts/JungleAdventurer.ttf",
+        fontSize = 24
+      })
+      posNum:setFillColor(1, 0.9, 0.2)
+
+      -- Runner name/animal type
+      local runnerName = displayApi.newText({
+        parent = rankingGroup,
+        text = runner.displayName or runner.id or "Runner",
+        x = contentWidth * 0.5 - 60,
+        y = rankY,
+        font = "assets/fonts/JungleAdventurer.ttf",
+        fontSize = 22
+      })
+      runnerName:setFillColor(1, 1, 1)
+      runnerName.anchorX = 0
+
+      -- Runner time
+      local runnerTime = displayApi.newText({
+        parent = rankingGroup,
+        text = formatTime(runner.finishTime or 0),
+        x = contentWidth * 0.5 + 140,
+        y = rankY,
+        font = "assets/fonts/JungleAdventurer.ttf",
+        fontSize = 20
+      })
+      runnerTime:setFillColor(0.8, 0.9, 1)
+    end
+  end
+
   -- Time display
   local timeText = displayApi.newText({
     parent = group,
     text = formatTime(stats.time),
     x = contentWidth * 0.5,
-    y = panel.y - 60,
+    y = panel.y + 90,
     font = "assets/fonts/JungleAdventurer.ttf",
     fontSize = 32
   })
@@ -131,13 +195,13 @@ function scene:create(event)
   -- Stats in boxes/sections
   local leftX = panel.x - 140
   local rightX = panel.x + 140
-  local statsY = panel.y
+  local statsY = panel.y + 50
 
   -- XP box
   local xpBg = displayApi.newRoundedRect(
     group,
     leftX,
-    statsY - 20,
+    statsY,
     120,
     80,
     8
@@ -148,7 +212,7 @@ function scene:create(event)
     parent = group,
     text = "XP",
     x = leftX,
-    y = statsY - 40,
+    y = statsY - 20,
     font = "assets/fonts/JungleAdventurer.ttf",
     fontSize = 18
   })
@@ -156,9 +220,9 @@ function scene:create(event)
 
   local xpValue = displayApi.newText({
     parent = group,
-    text = string.format("+%d", stats.xp or 50),
+    text = string.format("+%d", stats.xp or 0),
     x = leftX,
-    y = statsY - 10,
+    y = statsY + 10,
     font = "assets/fonts/JungleAdventurer.ttf",
     fontSize = 28
   })
@@ -168,7 +232,7 @@ function scene:create(event)
   local coinsBg = displayApi.newRoundedRect(
     group,
     rightX,
-    statsY - 20,
+    statsY,
     120,
     80,
     8
@@ -179,7 +243,7 @@ function scene:create(event)
     parent = group,
     text = "COINS",
     x = rightX,
-    y = statsY - 40,
+    y = statsY - 20,
     font = "assets/fonts/JungleAdventurer.ttf",
     fontSize = 18
   })
@@ -187,45 +251,13 @@ function scene:create(event)
 
   local coinsValue = displayApi.newText({
     parent = group,
-    text = string.format("+%d", stats.coins or 20),
+    text = string.format("+%d", stats.coins or 0),
     x = rightX,
-    y = statsY - 10,
+    y = statsY + 10,
     font = "assets/fonts/JungleAdventurer.ttf",
     fontSize = 28
   })
   coinsValue:setFillColor(1, 0.93, 0.72)
-
-  -- Pickups box
-  local pickupsBg = displayApi.newRoundedRect(
-    group,
-    contentWidth * 0.5,
-    statsY + 60,
-    260,
-    60,
-    8
-  )
-  pickupsBg:setFillColor(0.15, 0.2, 0.25, 0.9)
-
-  local pickupsText = displayApi.newText({
-    parent = group,
-    text = string.format("Pickups Collected: %d", stats.pickups or 0),
-    x = contentWidth * 0.5,
-    y = statsY + 60,
-    font = "assets/fonts/JungleAdventurer.ttf",
-    fontSize = 22
-  })
-  pickupsText:setFillColor(0.9, 0.9, 1)
-
-  -- Powerups used box
-  local powerupsText = displayApi.newText({
-    parent = group,
-    text = string.format("Powerups Used: %d", stats.powersUsed or 0),
-    x = contentWidth * 0.5,
-    y = statsY + 95,
-    font = "assets/fonts/JungleAdventurer.ttf",
-    fontSize = 20
-  })
-  powerupsText:setFillColor(0.8, 0.8, 0.9)
 
   -- Buttons
 

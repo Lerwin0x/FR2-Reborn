@@ -17,6 +17,7 @@ local textures = {
   ui_jump_button = "assets/images/game/buttonJump.png",
   ui_power_button = "assets/images/game/buttonPowerup.png",
   ui_pause_button = "assets/images/gui/common/buttonClosePopup.png",
+  ui_close_button = "assets/images/gui/common/buttonClosePopup.png",
   race_background_sky = "assets/images/map/forest/background/1_dawn.png",
   race_background_mid = "assets/images/map/forest/background/4.4.png",
   race_background_fore = "assets/images/map/forest/background/5.3.png",
@@ -99,9 +100,9 @@ local function registerThemeSheets(theme)
     options = {
       width = 160,
       height = 100,
-      numFrames = 90,
-      sheetContentWidth = 960,
-      sheetContentHeight = 1500
+      numFrames = 120, -- 6 cols x 20 rows (1024/160 x 2048/100)
+      sheetContentWidth = 1024,
+      sheetContentHeight = 2048
     }
   }
   sheets[theme .. "_props"] = {
@@ -109,9 +110,9 @@ local function registerThemeSheets(theme)
     options = {
       width = 160,
       height = 100,
-      numFrames = 80,
-      sheetContentWidth = 1280,
-      sheetContentHeight = 1000
+      numFrames = 60, -- 6 cols x 10 rows (1024/160 x 1024/100)
+      sheetContentWidth = 1024,
+      sheetContentHeight = 1024
     }
   }
   sheets[theme .. "_special"] = {
@@ -119,9 +120,9 @@ local function registerThemeSheets(theme)
     options = {
       width = 160,
       height = 100,
-      numFrames = 6,
-      sheetContentWidth = 960,
-      sheetContentHeight = 100
+      numFrames = 30, -- 3 cols x 10 rows (512/160 x 1024/100)
+      sheetContentWidth = 512,
+      sheetContentHeight = 1024
     }
   }
 end
