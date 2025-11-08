@@ -18,6 +18,16 @@ function scene:create(event)
     sceneGroup:insert(bg)
   end
 
+  -- Fun Run 2 Logo (top center)
+  local logo = display.newImageRect(
+    sceneGroup,
+    "assets/images/gui/common/logo.png",
+    400,
+    200
+  )
+  logo.x = display.contentWidth * 0.5
+  logo.y = 150
+
   -- Helper function for buttons
   local function newButton(params)
     local btn = display.newImageRect(
