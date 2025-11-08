@@ -9,6 +9,7 @@ if not displayApi then
 end
 
 local M = {}
+local unpackFn = table.unpack or unpack
 
 local Runner = {}
 Runner.__index = Runner
@@ -23,28 +24,58 @@ local function clamp(value, minValue, maxValue)
   return value
 end
 
-local function createSprite()
+local function createSprite(params)
+  params = params or {}
   local group = displayApi.newGroup()
   group.anchorChildren = true
 
-  local avatar = asset.newImage({
-    parent = group,
-    id = "runner_player",
-    width = constants.runner.width,
-    height = constants.runner.height
-  })
+  local avatarId = params.textureId or "runner_player"
+  local avatarWidth = params.width or constants.runner.width
+  local avatarHeight = params.height or constants.runner.height
+  local avatar
+
+  do
+    local ok, image = pcall(asset.newImage, {
+      parent = group,
+      id = avatarId,
+      width = avatarWidth,
+      height = avatarHeight
+    })
+    if ok and image then
+      avatar = image
+    else
+      avatar = displayApi.newRoundedRect(group, 0, 0, avatarWidth, avatarHeight, 18)
+      avatar:setFillColor(0.25, 0.75, 0.35)
+      avatar.anchorY = 1
+    end
+  end
+
   avatar.anchorY = 1
   avatar.x = 0
   avatar.y = 0
 
-  local arrow = asset.newImage({
-    parent = group,
-    id = "runner_arrow",
-    width = 60,
-    height = 60
-  })
-  arrow.anchorY = 1
-  arrow.y = -constants.runner.height - 12
+  if params.tint and avatar.setFillColor then
+    avatar:setFillColor(unpackFn(params.tint))
+  end
+
+  local arrow
+  if params.showArrow ~= false then
+    local arrowId = params.arrowTextureId or "runner_arrow"
+    local ok, image = pcall(asset.newImage, {
+      parent = group,
+      id = arrowId,
+      width = params.arrowWidth or 60,
+      height = params.arrowHeight or 60
+    })
+    if ok and image then
+      arrow = image
+      if params.arrowTint and arrow.setFillColor then
+        arrow:setFillColor(unpackFn(params.arrowTint))
+      end
+      arrow.anchorY = 1
+      arrow.y = -(params.arrowOffset or (avatarHeight + 12))
+    end
+  end
 
   group.avatar = avatar
   group.arrow = arrow
@@ -107,16 +138,16 @@ function Runner:update(dt, track)
     end
   end
 
-  local desiredSpeed = constants.runner.forwardSpeed * self.speedMultiplier
+  local speedBias = self.speedBias or 1
+  local minSpeed = constants.runner.forwardSpeed * speedBias
+  local maxSpeed = constants.runner.maxForwardSpeed * self.speedMultiplier * speedBias
+  local acceleration = constants.runner.acceleration * speedBias
+
   self.velocityX = clamp(
-    self.velocityX + (constants.runner.acceleration * dt * self.speedMultiplier),
-    constants.runner.forwardSpeed,
-    constants.runner.maxForwardSpeed * self.speedMultiplier
+    self.velocityX + (acceleration * dt * self.speedMultiplier),
+    minSpeed,
+    maxSpeed
   )
-  if self.velocityX < desiredSpeed then
-    self.velocityX = clamp(desiredSpeed, constants.runner.forwardSpeed,
-      constants.runner.maxForwardSpeed * self.speedMultiplier)
-  end
 
   self.velocityY = self.velocityY + (constants.runner.gravity * dt)
 
@@ -155,7 +186,7 @@ function Runner:update(dt, track)
   self.position.y = nextY
 
   self.view.x = self.position.x
-  self.view.y = self.position.y
+  self.view.y = self.position.y + (self.renderOffsetY or 0)
 
   if self.velocityX > 0 then
     self.view.xScale = 1
@@ -165,7 +196,8 @@ end
 function Runner:reset(startX, startY)
   self.position.x = startX
   self.position.y = startY
-  self.velocityX = constants.runner.forwardSpeed
+  local speedBias = self.speedBias or 1
+  self.velocityX = constants.runner.forwardSpeed * speedBias
   self.velocityY = 0
   self.coyoteTimer = 0
   self.jumpBuffer = 0
@@ -174,19 +206,28 @@ function Runner:reset(startX, startY)
   self.powerTimer = 0
   self.speedMultiplier = 1
   self.view.x = startX
-  self.view.y = startY
+  self.view.y = startY + (self.renderOffsetY or 0)
 end
 
 function M.newRunner(params)
   params = params or {}
   local runner = setmetatable({}, Runner)
   runner.id = params.id or "player"
-  runner.view = createSprite()
+  runner.displayName = params.displayName or params.name or runner.id
+  runner.view = createSprite(params)
   runner.position = {
     x = 0,
     y = 0
   }
-  runner.velocityX = constants.runner.forwardSpeed
+  local numericBias = params.speedBias
+  if type(numericBias) ~= "number" then
+    numericBias = tonumber(numericBias) or 1
+  end
+  if numericBias <= 0 then
+    numericBias = 1
+  end
+  runner.speedBias = numericBias
+  runner.velocityX = constants.runner.forwardSpeed * runner.speedBias
   runner.velocityY = 0
   runner.coyoteTimer = 0
   runner.jumpBuffer = 0
@@ -195,6 +236,11 @@ function M.newRunner(params)
   runner.powerInventory = nil
   runner.isGrounded = false
   runner.finished = false
+  runner.renderOffsetY = params.renderOffsetY or 0
+  runner.textureId = params.textureId or "runner_player"
+  runner.showArrow = params.showArrow ~= false
+  runner.avatar = runner.view and runner.view.avatar
+  runner.arrowView = runner.view and runner.view.arrow
 
   return runner
 end

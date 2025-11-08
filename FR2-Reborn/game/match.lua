@@ -5,6 +5,8 @@ local input = require("engine.input")
 local audio = require("engine.audio")
 local asset = require("engine.asset")
 local powerups = require("game.powerups")
+local animals = require("game.animals")
+local botController = require("game.bot")
 
 local M = {}
 local displayApi = rawget(_G, "display")
@@ -13,42 +15,34 @@ if not displayApi then
   error("Display API unavailable; run inside Solar2D simulator")
 end
 
-local function formatResults(time)
-  return {
-    {
-      id = "player",
-      time = time,
-      place = 1
-    }
-  }
+local function computeRewards(trackLength, finishTime, place, totalRacers)
+  local safeTime = math.max(finishTime or trackLength, 0.001)
+  local baseXp = 120
+  local speedBonus = math.max(0, math.floor((trackLength / safeTime) * 0.05))
+  local placementBonus = math.max(0, (totalRacers - (place or 1)) * 12)
+  local xp = baseXp + speedBonus + placementBonus
+  local coins = 40 + math.floor((speedBonus + placementBonus) * 0.6)
+  return xp, coins
 end
 
 function M.newLocalMatch(options)
+  options = options or {}
+
   local group = displayApi.newGroup()
-  local track = trackFactory.newTrack(options and options.mapId)
+  local track = trackFactory.newTrack(options.mapId)
   group:insert(track.view)
-
-  local runner = runnerFactory.newRunner({ id = "player" })
-  track.world:insert(runner.view)
-
-  local startX, startGround = track:getStartPosition()
-  runner:reset(startX, startGround)
-
-  local floorOffset = constants.camera.floorY - startGround
-  track:setWorldYOffset(floorOffset)
-  track:updateCamera(startX)
 
   local state = "countdown"
   local countdown = constants.track.countdown
   local lastCountdownCue = math.ceil(countdown)
   local elapsed = 0
-  local results = {}
-  local jumpHandler
-  local powerHandler
-  local pickup
+
+  local playerAnimal = animals.get(options.playerAnimalId) or animals.default()
+  local botCount = math.max(0, options.botCount or 3)
+  local botRoster = animals.ensureRoster(options.botRoster, botCount, playerAnimal and playerAnimal.id)
 
   local summary = {
-    results = results,
+    results = {},
     stats = {
       theme = track:getTheme(),
       trackName = track:getName(),
@@ -57,9 +51,99 @@ function M.newLocalMatch(options)
       coins = 0,
       time = 0,
       pickups = 0,
-      powersUsed = 0
+      powersUsed = 0,
+      botCount = #botRoster,
+      botRoster = animals.serialize(botRoster),
+      playerAnimalId = playerAnimal and playerAnimal.id,
+      playerTextureId = playerAnimal and playerAnimal.textureId,
+      runnerCount = 1 + #botRoster
     }
   }
+
+  local racers = {}
+  local controllers = {}
+  local finishOrder = {}
+  local summaryReady = false
+  local playerEntry
+
+  local function addRacer(spec)
+    local params = {
+      id = spec.id,
+      displayName = spec.name,
+      textureId = spec.textureId,
+      speedBias = spec.speedBias,
+      showArrow = spec.showArrow,
+      arrowTint = spec.arrowTint,
+      renderOffsetY = spec.renderOffsetY
+    }
+    local runner = runnerFactory.newRunner(params)
+    track.world:insert(runner.view)
+    local entry = {
+      id = spec.id,
+      name = spec.name,
+      runner = runner,
+      isPlayer = spec.isPlayer,
+      animal = spec.animal,
+      controller = nil,
+      finished = false,
+      finishTime = nil,
+      place = nil
+    }
+    racers[#racers + 1] = entry
+    return entry
+  end
+
+  playerEntry = addRacer({
+    id = "player",
+    name = options.playerName or "You",
+    textureId = playerAnimal and playerAnimal.textureId or "runner_player",
+    speedBias = playerAnimal and playerAnimal.speedBias or 1,
+    showArrow = true,
+    arrowTint = playerAnimal and playerAnimal.arrowTint,
+    renderOffsetY = 0,
+    animal = playerAnimal,
+    isPlayer = true
+  })
+
+  for index = 1, #botRoster do
+    local bot = botRoster[index]
+    local entry = addRacer({
+      id = string.format("bot_%d", index),
+      name = bot.name or string.format("Bot %d", index),
+      textureId = bot.textureId or "runner_bot_default",
+      speedBias = bot.speedBias or 1,
+      showArrow = false,
+      renderOffsetY = (index % 2 == 0) and -6 or 6,
+      animal = bot,
+      isPlayer = false
+    })
+    local controller = botController.new(entry.runner, track, {
+      aggression = bot.speedBias,
+      randomJumpInterval = 2.1 + (index * 0.3)
+    })
+    entry.controller = controller
+    controllers[#controllers + 1] = controller
+  end
+
+  local startX, startGround = track:getStartPosition()
+  local goalX = track:getGoalX()
+
+  for index = 1, #racers do
+    local entry = racers[index]
+    local offsetX = -((index - 1) * (track.tileWidth * 0.18))
+    entry.runner.renderOffsetY = entry.runner.renderOffsetY or ((index % 2 == 0) and -6 or 6)
+    entry.runner:reset(startX + offsetX, startGround)
+    if entry.controller and entry.controller.reset then
+      entry.controller:reset()
+    end
+  end
+
+  local floorOffset = constants.camera.floorY - startGround
+  track:setWorldYOffset(floorOffset)
+  track:updateCamera(playerEntry.runner.position.x)
+
+  local pickup
+  local pickupTimer = 0
 
   local function spawnPowerPickup()
     local spec = powerups.random()
@@ -75,6 +159,7 @@ function M.newLocalMatch(options)
     if not ok or not filename then
       return nil
     end
+
     local image = displayApi.newImageRect(track.world, filename, constants.pickup.iconSize, constants.pickup.iconSize)
     if not image then
       return nil
@@ -82,7 +167,7 @@ function M.newLocalMatch(options)
     image.anchorX = 0.5
     image.anchorY = 0.5
 
-    local spawnX = math.min(track:getGoalX() - (track.tileWidth * 4), startX + (track.tileWidth * 8))
+    local spawnX = math.min(goalX - (track.tileWidth * 4), startX + (track.tileWidth * 8))
     if spawnX < startX + (track.tileWidth * 2) then
       spawnX = startX + (track.tileWidth * 2)
     end
@@ -96,8 +181,6 @@ function M.newLocalMatch(options)
       baseY = image.y
     }
   end
-
-  local pickupTimer = 0
 
   local function cleanupPickup()
     if pickup and pickup.view and pickup.view.removeSelf then
@@ -118,67 +201,120 @@ function M.newLocalMatch(options)
     if not pickup or not pickup.view then
       return
     end
-    local horizontalGap = math.abs(runner.position.x - pickup.view.x)
-    local verticalGap = math.abs(runner.position.y - pickup.view.y)
+    local playerRunner = playerEntry.runner
+    local horizontalGap = math.abs(playerRunner.position.x - pickup.view.x)
+    local verticalGap = math.abs(playerRunner.position.y - pickup.view.y)
     if horizontalGap <= constants.pickup.triggerDistance and verticalGap <= constants.pickup.heightTolerance then
-      pickup.spec.grant(runner)
+      pickup.spec.grant(playerRunner)
       summary.stats.pickups = summary.stats.pickups + 1
       cleanupPickup()
     end
   end
-
-  local function finishRace()
-    if state ~= "finished" then
-      state = "finished"
-      runner.finished = true
-      results = formatResults(elapsed)
-      summary.results = results
-      summary.stats.time = elapsed
-      local distance = track:getLength()
-      local baseXp = 120
-      local speedBonus = math.max(0, math.floor((distance / math.max(elapsed, 0.001)) * 0.05))
-      summary.stats.xp = baseXp + speedBonus
-      summary.stats.coins = 40 + math.floor(speedBonus * 0.6)
-      cleanupPickup()
-    end
-  end
-
-  local function handleJump()
-    if state == "finished" then
-      return
-    end
-    runner:queueJump()
-  end
-
-  local function handlePower()
-    if state ~= "running" then
-      return
-    end
-    local inventory = runner:consumePowerUp()
-    local spec = inventory and (inventory.data or powerups.get(inventory.id))
-    if not spec then
-      audio.playSfx("power_empty")
-      return
-    end
-    spec.activate(runner)
-    summary.stats.powersUsed = (summary.stats.powersUsed or 0) + 1
-  end
-
-  jumpHandler = handleJump
-  powerHandler = handlePower
-
-  input.bind("jump", jumpHandler)
-  input.bind("powerup", powerHandler)
 
   pickup = spawnPowerPickup()
   if pickup then
     pickupTimer = 0
   end
 
+  local playerFinished = false
+  local postTimer = 0
+
+  local function recordFinish(entry, time)
+    if entry.finished then
+      return
+    end
+    entry.finished = true
+    entry.finishTime = time
+    entry.runner.finished = true
+    finishOrder[#finishOrder + 1] = entry
+    entry.place = #finishOrder
+    if entry.isPlayer then
+      playerFinished = true
+    end
+  end
+
+  local function finalizeResults(finalTime)
+    if summaryReady then
+      return
+    end
+    summaryReady = true
+    local ordered = {}
+    for index = 1, #finishOrder do
+      local entry = finishOrder[index]
+      ordered[#ordered + 1] = {
+        id = entry.id,
+        name = entry.name,
+        place = index,
+        time = entry.finishTime or finalTime or elapsed,
+        isPlayer = entry.isPlayer
+      }
+    end
+    for index = 1, #racers do
+      local entry = racers[index]
+      if not entry.finished then
+        ordered[#ordered + 1] = {
+          id = entry.id,
+          name = entry.name,
+          place = #ordered + 1,
+          time = finalTime or elapsed,
+          isPlayer = entry.isPlayer
+        }
+      end
+    end
+    local playerRecord
+    for _, record in ipairs(ordered) do
+      if record.isPlayer then
+        playerRecord = record
+        break
+      end
+    end
+    if not playerRecord then
+      playerRecord = {
+        id = playerEntry.id,
+        name = playerEntry.name,
+        place = #ordered + 1,
+        time = finalTime or elapsed,
+        isPlayer = true
+      }
+      ordered[#ordered + 1] = playerRecord
+    end
+    summary.results = ordered
+    summary.stats.time = playerRecord.time
+    summary.stats.place = playerRecord.place
+    local xp, coins = computeRewards(track:getLength(), playerRecord.time, playerRecord.place, #racers)
+    summary.stats.xp = xp
+    summary.stats.coins = coins
+  end
+
+  local function handleJump()
+    if state == "finished" then
+      return
+    end
+    playerEntry.runner:queueJump()
+  end
+
+  local function handlePower()
+    if state ~= "running" and state ~= "post" then
+      return
+    end
+    local inventory = playerEntry.runner:consumePowerUp()
+    local spec = inventory and (inventory.data or powerups.get(inventory.id))
+    if not spec then
+      audio.playSfx("power_empty")
+      return
+    end
+    spec.activate(playerEntry.runner)
+    summary.stats.powersUsed = (summary.stats.powersUsed or 0) + 1
+  end
+
+  input.bind("jump", handleJump)
+  input.bind("powerup", handlePower)
+
   local match = {
     group = group,
-    runner = runner,
-    track = track
+    runner = playerEntry.runner,
+    track = track,
+    racers = racers
   }
 
   function match:update(dt)
@@ -197,20 +333,55 @@ function M.newLocalMatch(options)
         state = "running"
         countdown = 0
         audio.playSfx("race_start")
+        for index = 1, #controllers do
+          local controller = controllers[index]
+          if controller.reset then
+            controller:reset()
+          end
+        end
       end
-      track:updateCamera(runner.position.x)
+      track:updateCamera(playerEntry.runner.position.x)
       animatePickup(dt)
       return
     end
 
     elapsed = elapsed + dt
-    runner:update(dt, track)
-    track:updateCamera(runner.position.x)
+    local controllerState = (state == "post") and "running" or state
+
+    for index = 1, #racers do
+      local entry = racers[index]
+      if entry.controller then
+        entry.controller:update(dt, controllerState)
+      end
+      entry.runner:update(dt, track)
+      if not entry.finished and entry.runner.position.x >= goalX then
+        recordFinish(entry, elapsed)
+      end
+    end
+
+    track:updateCamera(playerEntry.runner.position.x)
     animatePickup(dt)
     tryCollectPickup()
 
-    if runner.position.x >= track:getGoalX() then
-      finishRace()
+    if state == "running" and playerFinished then
+      state = "post"
+      postTimer = math.max(postTimer, 1.35)
+    end
+
+    if state == "post" then
+      postTimer = postTimer - dt
+      if postTimer <= 0 or #finishOrder == #racers then
+        state = "finished"
+        cleanupPickup()
+        finalizeResults(elapsed)
+      end
+      return
+    end
+
+    if #finishOrder == #racers then
+      state = "finished"
+      cleanupPickup()
+      finalizeResults(elapsed)
     end
   end
 
@@ -231,7 +402,7 @@ function M.newLocalMatch(options)
   end
 
   function match:getRunner()
-    return runner
+    return playerEntry.runner
   end
 
   function match:getTrack()
@@ -239,7 +410,7 @@ function M.newLocalMatch(options)
   end
 
   function match:getPowerSlot()
-    local inventory = runner.powerInventory
+    local inventory = playerEntry.runner.powerInventory
     if inventory and inventory.data then
       return {
         id = inventory.id,
@@ -254,8 +425,8 @@ function M.newLocalMatch(options)
   end
 
   function match:destroy()
-    input.unbind("jump", jumpHandler)
-    input.unbind("powerup", powerHandler)
+    input.unbind("jump", handleJump)
+    input.unbind("powerup", handlePower)
     cleanupPickup()
   end
 

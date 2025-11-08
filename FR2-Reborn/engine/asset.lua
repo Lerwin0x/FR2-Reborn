@@ -32,19 +32,95 @@ local textures = {
   results_bg_winter = "assets/images/gui/postgame/postBG_winter.png",
   results_panel = "assets/images/gui/postgame/windowTimes.png",
   results_coin_icon = "assets/images/gui/postgame/iconCoin.png",
-  results_xp_icon = "assets/images/gui/postgame/achiProgress.png"
+  results_xp_icon = "assets/images/gui/postgame/achiProgress.png",
+  menu_panel = "assets/images/gui/practice/window.png",
+  menu_info_panel = "assets/images/gui/play/play_infoWindow.png",
+  menu_map_frame_top = "assets/images/gui/practice/top.png",
+  menu_map_frame_bottom = "assets/images/gui/practice/bottom.png",
+  menu_map_frame_left = "assets/images/gui/practice/left.png",
+  menu_map_frame_right = "assets/images/gui/practice/right.png",
+  menu_map_selected = "assets/images/gui/practice/levelSelected.png",
+  menu_arrow_left = "assets/images/gui/mainMenu/arrowLeft.png",
+  menu_arrow_right = "assets/images/gui/mainMenu/arrowRight.png",
+  menu_icon_random = "assets/images/gui/practice/iconRandom.png",
+  menu_theme_default_forest = "assets/images/gui/practice/defaultforest.png",
+  menu_theme_default_space = "assets/images/gui/practice/defaultspace.png",
+  menu_theme_default_town = "assets/images/gui/practice/defaulttown.png",
+  menu_theme_default_tropical = "assets/images/gui/practice/defaulttropical.png",
+  menu_theme_default_winter = "assets/images/gui/practice/defaultwinter.png",
+  runner_bot_default = "assets/images/game/playerOtherNormal.png",
+  animal_swiftclaw = "assets/images/monsters/c1s0/monster.png",
+  animal_brimstone = "assets/images/monsters/c2s0/monster.png",
+  animal_glacier = "assets/images/monsters/c3s0/monster.png",
+  animal_bramble = "assets/images/monsters/c4s0/monster.png",
+  animal_ember = "assets/images/monsters/c5s0/monster.png",
+  animal_torrent = "assets/images/monsters/c6s0/monster.png",
+  forest_background_alt_mid = "assets/images/map/forest/background/4.4.png",
+  forest_background_alt_fore = "assets/images/map/forest/background/5.3.png",
+  space_background_sky = "assets/images/map/space/background/1_dawn.png",
+  space_background_mid = "assets/images/map/space/background/4.4.png",
+  space_background_fore = "assets/images/map/space/background/5.3.png",
+  town_background_sky = "assets/images/map/town/background/1_sunrise.png",
+  town_background_mid = "assets/images/map/town/background/4.3.png",
+  town_background_fore = "assets/images/map/town/background/5.3.png",
+  tropical_background_sky = "assets/images/map/tropical/background/1_dawn.png",
+  tropical_background_mid = "assets/images/map/tropical/background/4.3.png",
+  tropical_background_fore = "assets/images/map/tropical/background/5.3.png",
+  winter_background_sky = "assets/images/map/winter/background/1_dawn.png",
+  winter_background_mid = "assets/images/map/winter/background/4.3.png",
+  winter_background_fore = "assets/images/map/winter/background/5.3.png"
 }
 
-local sheets = {
-  forest_tiles = {
-    filename = "assets/lua/map/assets/forest/tiles.png",
-    options = { width = 160, height = 100, numFrames = 72 }
-  },
-  forest_tiles_r = {
-    filename = "assets/lua/map/assets/forest/tiles.png",
-    options = { width = 160, height = 100, numFrames = 72 }
+for index = 1, 30 do
+  local id = string.format("practice_icon_%d", index)
+  if not textures[id] then
+    textures[id] = string.format("assets/images/gui/practice/icon%d.png", index)
+  end
+end
+
+textures.practice_icon_random = textures.menu_icon_random
+
+local sheets = {}
+
+local function registerThemeSheets(theme)
+  local basePath = string.format("assets/lua/map/assets/%s/", theme)
+  sheets[theme .. "_tiles"] = {
+    filename = basePath .. "tiles.png",
+    options = {
+      width = 160,
+      height = 100,
+      numFrames = 90,
+      sheetContentWidth = 960,
+      sheetContentHeight = 1500
+    }
   }
-}
+  sheets[theme .. "_props"] = {
+    filename = basePath .. "props.png",
+    options = {
+      width = 160,
+      height = 100,
+      numFrames = 80,
+      sheetContentWidth = 1280,
+      sheetContentHeight = 1000
+    }
+  }
+  sheets[theme .. "_special"] = {
+    filename = basePath .. "animatedTiles.png",
+    options = {
+      width = 160,
+      height = 100,
+      numFrames = 6,
+      sheetContentWidth = 960,
+      sheetContentHeight = 100
+    }
+  }
+end
+
+registerThemeSheets("forest")
+registerThemeSheets("space")
+registerThemeSheets("town")
+registerThemeSheets("tropical")
+registerThemeSheets("winter")
 
 local sounds = {
   menu_button = "assets/sound/sfx_button_press.wav",

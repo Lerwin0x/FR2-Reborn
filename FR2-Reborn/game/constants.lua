@@ -16,7 +16,7 @@ local C = {
     speedBoostDuration = 2.4
   },
   track = {
-    defaultMap = "0",
+    defaultMap = "3",
     countdown = 3,
     worldScale = 1,
     tileWidth = 160,
