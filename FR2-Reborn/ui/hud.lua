@@ -55,14 +55,16 @@ end
 function M.newHud()
   local group = displayApi.newGroup()
 
-  local timerText = displayApi.newText({
+  -- Position text (1st, 2nd, 3rd, 4th) instead of time
+  local positionText = displayApi.newText({
     parent = group,
-    text = "0.00",
+    text = "1st",
     x = displayApi.contentCenterX,
-    y = displayApi.safeScreenOriginY + 36,
+    y = displayApi.safeScreenOriginY + 60,
     font = nativeApi.systemFontBold,
-    fontSize = 48
+    fontSize = 72
   })
+  positionText:setFillColor(1, 0.9, 0.2)
 
   local countdownSprites = newCountdownSprites(group)
 
@@ -93,8 +95,22 @@ function M.newHud()
     currentPowerIcon = "hud_power_icon_placeholder"
   }
 
+  local function getOrdinal(place)
+    if place == 1 then
+      return "1st"
+    elseif place == 2 then
+      return "2nd"
+    elseif place == 3 then
+      return "3rd"
+    else
+      return place .. "th"
+    end
+  end
+
   function hud:update(match)
-    timerText.text = string.format(constants.hud.timerFormat, match:getElapsed())
+    -- Update position instead of time
+    local position = match:getPosition() or 1
+    positionText.text = getOrdinal(position)
 
     if match:getState() == "countdown" then
       showCountdownSprite(countdownSprites, match:getCountdown())

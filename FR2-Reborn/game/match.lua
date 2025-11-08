@@ -363,14 +363,16 @@ function M.newLocalMatch(options)
     animatePickup(dt)
     tryCollectPickup()
 
+    -- Wait for all racers to finish (extended time for bots)
     if state == "running" and playerFinished then
       state = "post"
-      postTimer = math.max(postTimer, 1.35)
+      postTimer = math.max(postTimer, 10.0) -- Give bots 10 seconds to finish
     end
 
     if state == "post" then
       postTimer = postTimer - dt
-      if postTimer <= 0 or #finishOrder == #racers then
+      -- Only end when all racers finish OR timeout after generous delay
+      if #finishOrder == #racers or postTimer <= 0 then
         state = "finished"
         cleanupPickup()
         finalizeResults(elapsed)
@@ -395,6 +397,27 @@ function M.newLocalMatch(options)
 
   function match:getElapsed()
     return elapsed
+  end
+
+  function match:getPosition()
+    -- Calculate player's current position among all racers
+    if not playerEntry or not playerEntry.runner then
+      return 1
+    end
+
+    local playerX = playerEntry.runner.position.x
+    local position = 1
+
+    for i = 1, #racers do
+      local racer = racers[i]
+      if racer and racer.runner and not racer.isPlayer then
+        if racer.runner.position.x > playerX then
+          position = position + 1
+        end
+      end
+    end
+
+    return position
   end
 
   function match:getResults()

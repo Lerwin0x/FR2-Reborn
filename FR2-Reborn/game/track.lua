@@ -594,40 +594,64 @@ function M.newTrack(mapId)
 
   local backgrounds = themeConfig.backgrounds or themeConfigs.forest.backgrounds
 
-  local function scaleToFill(sprite, multiplier)
-    if not sprite then
-      return
+  local function createRepeatingBackground(parent, imageId, yOffset, alphaValue)
+    local container = displayApi.newGroup()
+    parent:insert(container)
+
+    -- Create 5 copies for extra coverage during scrolling
+    local copies = {}
+    local bgWidth = displayApi.actualContentWidth * 1.2
+
+    for i = 1, 5 do
+      local bg = asset.newImage({
+        parent = container,
+        id = imageId
+      })
+      if bg then
+        local targetWidth = displayApi.actualContentWidth
+        local targetHeight = displayApi.actualContentHeight
+        if bg.contentWidth and bg.contentHeight then
+          local scale = math.max(targetWidth / bg.contentWidth, targetHeight / bg.contentHeight)
+          bg:scale(scale * 1.2, scale * 1.2)
+          bgWidth = bg.contentWidth * scale * 1.2
+        else
+          -- Fallback if dimensions not available
+          bg:scale(1.2, 1.2)
+        end
+        bg.x = displayApi.contentCenterX + ((i - 3) * bgWidth)
+        bg.y = displayApi.contentCenterY + (yOffset or 0)
+        if alphaValue then
+          bg.alpha = alphaValue
+        end
+        copies[i] = bg
+      end
     end
-    local targetWidth = displayApi.actualContentWidth
-    local targetHeight = displayApi.actualContentHeight
-    local scale = math.max(targetWidth / sprite.contentWidth, targetHeight / sprite.contentHeight)
-    sprite:scale(scale * (multiplier or 1), scale * (multiplier or 1))
+
+    container.copies = copies
+    container.imageId = imageId
+    container.copyWidth = bgWidth
+    return container
   end
+  local sky = createRepeatingBackground(
+    backgroundGroup,
+    backgrounds.sky or "race_background_sky",
+    0,
+    nil
+  )
 
-  local sky = asset.newImage({
-    parent = backgroundGroup,
-    id = backgrounds.sky or "race_background_sky"
-  })
-  scaleToFill(sky, 1.05)
-  sky.x = displayApi.contentCenterX
-  sky.y = displayApi.contentCenterY
+  local foliageMid = createRepeatingBackground(
+    backgroundGroup,
+    backgrounds.mid or "race_background_mid",
+    displayApi.actualContentHeight * 0.08,
+    nil
+  )
 
-  local foliageMid = asset.newImage({
-    parent = backgroundGroup,
-    id = backgrounds.mid or "race_background_mid"
-  })
-  scaleToFill(foliageMid, 0.95)
-  foliageMid.x = displayApi.contentCenterX
-  foliageMid.y = displayApi.contentCenterY + (displayApi.actualContentHeight * 0.08)
-
-  local foliageFore = asset.newImage({
-    parent = overlayGroup,
-    id = backgrounds.fore or "race_background_fore"
-  })
-  scaleToFill(foliageFore, 1.05)
-  foliageFore.x = displayApi.contentCenterX
-  foliageFore.y = displayApi.contentCenterY + (displayApi.actualContentHeight * 0.12)
-  foliageFore.alpha = 0.85
+  local foliageFore = createRepeatingBackground(
+    overlayGroup,
+    backgrounds.fore or "race_background_fore",
+    displayApi.actualContentHeight * 0.12,
+    0.85
+  )
 
   local parallaxLayers = {
     { view = sky,         ratio = 0.15 },
@@ -758,9 +782,36 @@ function M.newTrack(mapId)
     end
     desiredX = clamp(desiredX, minX, 0)
     self.world.x = desiredX
+
+    -- Update parallax backgrounds with wrapping
     for index = 1, #self.parallax do
       local layer = self.parallax[index]
-      layer.view.x = displayApi.contentCenterX + (desiredX * layer.ratio)
+      local parallaxOffset = desiredX * layer.ratio
+      layer.view.x = displayApi.contentCenterX + parallaxOffset
+
+      -- Wrap background copies for seamless infinite scrolling
+      if layer.view.copies and layer.view.copyWidth then
+        local bgWidth = layer.view.copyWidth
+        for i, copy in ipairs(layer.view.copies) do
+          if copy and copy.x then
+            -- Calculate position with parallax
+            local baseOffset = ((i - 3) * bgWidth)
+            local newX = displayApi.contentCenterX + parallaxOffset + baseOffset
+
+            -- Wrap around - if copy goes too far left, move it to the right
+            while newX < -bgWidth * 2 do
+              newX = newX + (bgWidth * 5)
+            end
+
+            -- If copy goes too far right, move it to the left
+            while newX > displayApi.actualContentWidth + (bgWidth * 2) do
+              newX = newX - (bgWidth * 5)
+            end
+
+            copy.x = newX
+          end
+        end
+      end
     end
   end
 

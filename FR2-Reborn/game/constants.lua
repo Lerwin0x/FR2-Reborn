@@ -24,7 +24,7 @@ local C = {
   },
   camera = {
     offsetX = 640,
-    floorY = 860,
+    floorY = 640, -- Adjusted for 720x1280 resolution
     smoothing = 12
   },
   hud = {
@@ -34,7 +34,7 @@ local C = {
   pickup = {
     triggerDistance = 140,
     heightTolerance = 120,
-    iconSize = 108
+    iconSize = 108 * 3 -- Scaled 3x for visibility
   }
 }
 

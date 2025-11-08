@@ -4,10 +4,15 @@
 local composer = require("composer")
 local random = require("engine.random")
 local time = require("engine.time")
+local asset = require("engine.asset")
 
 display.setStatusBar(display.HiddenStatusBar)
 
 random.seed(0)
 time.markStartup()
 
-composer.gotoScene("scenes.boot")
+-- Preload assets (textures, sounds, sheets)
+asset.preload()
+
+-- Load main menu
+composer.gotoScene("scenes.menu")
