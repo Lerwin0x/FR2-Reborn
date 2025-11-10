@@ -4,10 +4,14 @@ local constants = require("game.constants")
 local asset = require("engine.asset")
 
 local displayApi = rawget(_G, "display")
+local graphicsApi = rawget(_G, "graphics")
 local systemApi = rawget(_G, "system")
 
 if not displayApi then
   error("Display API unavailable; run inside Solar2D simulator")
+end
+if not graphicsApi then
+  error("Graphics API unavailable; run inside Solar2D simulator")
 end
 
 local M = {}
@@ -125,10 +129,21 @@ local function fileExists(path)
 end
 
 local function loadMap(mapId)
-  local path = string.format("assets/config/map/%s.json", mapId)
-  local data = readAssetFile(path)
+  local mapKey = tostring(mapId or constants.track.defaultMap)
+  local basePath = "assets/config/map/"
+  local fixedPath = string.format("%s%s_fixed.json", basePath, mapKey)
+  local rawPath
+  if fileExists(fixedPath) then
+    rawPath = fixedPath
+  else
+    rawPath = string.format("%s%s.json", basePath, mapKey)
+  end
+
+  local data = readAssetFile(rawPath)
   local decoded = json.decode(data)
-  assert(decoded, string.format("failed to decode map '%s'", mapId))
+  assert(decoded, string.format("failed to decode map '%s'", mapKey))
+  decoded._sourcePath = rawPath
+  decoded._isFixed = rawPath:find("_fixed", 1, true) ~= nil
   return decoded
 end
 
@@ -169,6 +184,40 @@ local function normalizeTilesetConfig(tilesets, name)
   return entry
 end
 
+local tilesetSheetCache = {}
+
+local function buildTilesetSheet(imagePath, frames, sheetWidth, sheetHeight, tileWidth, tileHeight, margin, spacing)
+  if not imagePath or imagePath == "" then
+    return nil
+  end
+  if not frames or #frames == 0 then
+    return nil
+  end
+  local cacheKey = string.format(
+    "%s:%d:%d:%d:%d:%d:%d:%d",
+    imagePath,
+    sheetWidth or 0,
+    sheetHeight or 0,
+    tileWidth or 0,
+    tileHeight or 0,
+    margin or 0,
+    spacing or 0,
+    #frames
+  )
+  local cached = tilesetSheetCache[cacheKey]
+  if cached then
+    return cached
+  end
+  local descriptor = {
+    sheetContentWidth = sheetWidth,
+    sheetContentHeight = sheetHeight,
+    frames = frames
+  }
+  local sheet = graphicsApi.newImageSheet(imagePath, descriptor)
+  tilesetSheetCache[cacheKey] = sheet
+  return sheet
+end
+
 local function computeTilesetEntries(mapData, themeConfig)
   local entries = {}
   if not mapData.tilesets then
@@ -195,24 +244,48 @@ local function computeTilesetEntries(mapData, themeConfig)
         rows = math.max(1, math.floor((imageHeight - (margin * 2) + spacing) / (tileHeight + spacing)))
       end
       local tileCount = tileset.tilecount or (columns * rows)
-      local sheet = asset.newImageSheet(config.sheet)
-      entries[#entries + 1] = {
-        id = tileset.name,
-        firstGid = tileset.firstgid,
-        lastGid = tileset.firstgid + tileCount - 1,
-        sheetId = config.sheet,
-        sheet = sheet,
-        flipX = config.flipX and true or false,
-        flipY = config.flipY and true or false,
-        tileWidth = tileWidth,
-        tileHeight = tileHeight,
-        spacing = spacing,
-        margin = margin,
-        columns = columns,
-        rows = rows,
-        offsetX = tileset.tileoffset and tileset.tileoffset.x or 0,
-        offsetY = tileset.tileoffset and tileset.tileoffset.y or 0
-      }
+      local imagePath = tileset.image or asset.getTexture(config.sheet)
+      local frames = {}
+      local produced = 0
+      for rowIndex = 0, rows - 1 do
+        for columnIndex = 0, columns - 1 do
+          produced = produced + 1
+          if produced > tileCount then
+            break
+          end
+          local frameX = margin + (columnIndex * (tileWidth + spacing))
+          local frameY = margin + (rowIndex * (tileHeight + spacing))
+          frames[produced] = {
+            x = frameX,
+            y = frameY,
+            width = tileWidth,
+            height = tileHeight
+          }
+        end
+        if produced >= tileCount then
+          break
+        end
+      end
+      local sheet = buildTilesetSheet(imagePath, frames, imageWidth, imageHeight, tileWidth, tileHeight, margin, spacing)
+      if sheet then
+        entries[#entries + 1] = {
+          id = tileset.name,
+          firstGid = tileset.firstgid,
+          lastGid = tileset.firstgid + tileCount - 1,
+          sheetId = config.sheet,
+          sheet = sheet,
+          flipX = config.flipX and true or false,
+          flipY = config.flipY and true or false,
+          tileWidth = tileWidth,
+          tileHeight = tileHeight,
+          spacing = spacing,
+          margin = margin,
+          columns = columns,
+          rows = rows,
+          offsetX = tileset.tileoffset and tileset.tileoffset.x or 0,
+          offsetY = tileset.tileoffset and tileset.tileoffset.y or 0
+        }
+      end
     end
   end
   table.sort(entries, function(a, b)
@@ -496,9 +569,9 @@ local function renderTileLayer(layer, tilesets, tileWidth, tileHeight, parentGro
     if rawId and rawId ~= 0 then
       local gid, flippedH, flippedV, flippedD = decodeTileId(rawId)
       local tilesetEntry = findTilesetEntry(tilesets, gid)
-      if tilesetEntry then
+      if tilesetEntry and tilesetEntry.sheet then
         local frame = gid - tilesetEntry.firstGid + 1
-        local sheet = tilesetEntry.sheet or asset.newImageSheet(tilesetEntry.sheetId)
+        local sheet = tilesetEntry.sheet
         local column = ((index - 1) % layerWidth) + 1
         local row = math.floor((index - 1) / layerWidth) + 1
         local tileDisplayWidth = tilesetEntry.tileWidth or tileWidth
@@ -659,70 +732,24 @@ function M.newTrack(mapId)
     { view = foliageFore, ratio = 0.55 }
   }
 
-  -- Use asset system for tile rendering
-  local mapPath = string.format("assets/config/map/%s.json", mapId or constants.track.defaultMap)
-
-  -- Create tile layers group
+  -- Create tile layers container and render map data using tileset metadata
   local tilesGroup = displayApi.newGroup()
   worldGroup:insert(tilesGroup)
 
-  -- Load tile sheets for this theme using asset system
-  local tileSheets = {
-    tiles = asset.newImageSheet(theme .. "_tiles"),
-    props = asset.newImageSheet(theme .. "_props"),
-    animated = asset.newImageSheet(theme .. "_special")
-  }
-
-  -- Render tiles from map data
   if mapData.layers then
+    local objectGroupTargets = {
+      background = backgroundGroup,
+      foreground = overlayGroup
+    }
+
     for _, layer in ipairs(mapData.layers) do
-      if layer.type == "tilelayer" and layer.data and layer.visible ~= false then
-        local layerGroup = displayApi.newGroup()
-        tilesGroup:insert(layerGroup)
-
-        local dataIndex = 1
-        for row = 1, layer.height do
-          for col = 1, layer.width do
-            local gid = layer.data[dataIndex]
-            dataIndex = dataIndex + 1
-
-            if gid and gid > 0 then
-              local sheet, frame
-
-              -- Determine which sheet and frame to use based on GID ranges
-              if gid >= 1 and gid <= 90 then
-                -- tiles.png (120 frames available)
-                sheet = tileSheets.tiles
-                frame = gid
-              elseif gid >= 91 and gid <= 180 then
-                -- tiles.png (flipped/rotated)
-                sheet = tileSheets.tiles
-                frame = gid - 90
-              elseif gid >= 181 and gid <= 260 then
-                -- props.png (60 frames available, clamp to avoid overflow)
-                sheet = tileSheets.props
-                frame = math.min(gid - 180, 60)
-              elseif gid >= 261 and gid <= 340 then
-                -- props.png (flipped/rotated, clamp to 60 frames)
-                sheet = tileSheets.props
-                frame = math.min(gid - 260, 60)
-              elseif gid >= 341 and gid <= 346 then
-                -- animatedTiles.png (30 frames available)
-                sheet = tileSheets.animated
-                frame = gid - 340
-              end
-
-              if sheet and frame then
-                local tile = displayApi.newImage(layerGroup, sheet, frame)
-                if tile then
-                  tile.anchorX = 0
-                  tile.anchorY = 0
-                  tile.x = (col - 1) * tileWidth
-                  tile.y = (row - 1) * tileHeight
-                end
-              end
-            end
-          end
+      if layer.visible ~= false then
+        if layer.type == "tilelayer" and layer.data then
+          local layerGroup = displayApi.newGroup()
+          tilesGroup:insert(layerGroup)
+          renderTileLayer(layer, tilesetEntries, tileWidth, tileHeight, layerGroup)
+        elseif layer.type == "objectgroup" then
+          renderObjectLayer(layer, theme, propertyScale, objectGroupTargets)
         end
       end
     end

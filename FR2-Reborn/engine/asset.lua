@@ -97,33 +97,15 @@ local function registerThemeSheets(theme)
   local basePath = string.format("assets/lua/map/assets/%s/", theme)
   sheets[theme .. "_tiles"] = {
     filename = basePath .. "tiles.png",
-    options = {
-      width = 160,
-      height = 100,
-      numFrames = 120, -- 6 cols x 20 rows (1024/160 x 2048/100)
-      sheetContentWidth = 1024,
-      sheetContentHeight = 2048
-    }
+    dynamic = true
   }
   sheets[theme .. "_props"] = {
     filename = basePath .. "props.png",
-    options = {
-      width = 160,
-      height = 100,
-      numFrames = 60, -- 6 cols x 10 rows (1024/160 x 1024/100)
-      sheetContentWidth = 1024,
-      sheetContentHeight = 1024
-    }
+    dynamic = true
   }
   sheets[theme .. "_special"] = {
     filename = basePath .. "animatedTiles.png",
-    options = {
-      width = 160,
-      height = 100,
-      numFrames = 30, -- 3 cols x 10 rows (512/160 x 1024/100)
-      sheetContentWidth = 512,
-      sheetContentHeight = 1024
-    }
+    dynamic = true
   }
 end
 
@@ -175,7 +157,7 @@ function M.preload()
   assert(audioApi, "Audio API unavailable; run inside Solar2D simulator")
 
   for id, entry in pairs(sheets) do
-    if not manifest.sheets[id] then
+    if not manifest.sheets[id] and not entry.dynamic then
       manifest.sheets[id] = graphicsApi.newImageSheet(entry.filename, entry.options)
     end
   end
@@ -247,6 +229,7 @@ function M.newImageSheet(id)
   if not sheet then
     local entry = sheets[id]
     assert(entry, string.format("image sheet '%s' is not registered", tostring(id)))
+    assert(entry.options, string.format("image sheet '%s' must be built dynamically", tostring(id)))
     sheet = graphicsApi.newImageSheet(entry.filename, entry.options)
     manifest.sheets[id] = sheet
   end

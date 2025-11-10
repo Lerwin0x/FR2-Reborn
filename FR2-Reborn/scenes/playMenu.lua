@@ -112,7 +112,7 @@ function scene:create(event)
     width = 131 * 2,
     height = 116 * 2,
     x = display.contentWidth * 0.501,
-    y = display.contentHeight * 0.5,
+    y = display.contentHeight * 0.6,
     text = {
       string = "Quick Play",
       size = 28,

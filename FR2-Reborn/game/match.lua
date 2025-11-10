@@ -84,6 +84,8 @@ function M.newLocalMatch(options)
       runner = runner,
       isPlayer = spec.isPlayer,
       animal = spec.animal,
+      animalId = spec.animal and spec.animal.id or nil,
+      textureId = spec.textureId,
       controller = nil,
       finished = false,
       finishTime = nil,
@@ -244,9 +246,13 @@ function M.newLocalMatch(options)
       ordered[#ordered + 1] = {
         id = entry.id,
         name = entry.name,
+        displayName = entry.name,
         place = index,
         time = entry.finishTime or finalTime or elapsed,
-        isPlayer = entry.isPlayer
+        finishTime = entry.finishTime or finalTime or elapsed,
+        isPlayer = entry.isPlayer,
+        textureId = entry.textureId,
+        animalId = entry.animalId
       }
     end
     for index = 1, #racers do
@@ -255,9 +261,13 @@ function M.newLocalMatch(options)
         ordered[#ordered + 1] = {
           id = entry.id,
           name = entry.name,
+          displayName = entry.name,
           place = #ordered + 1,
           time = finalTime or elapsed,
-          isPlayer = entry.isPlayer
+          finishTime = finalTime or elapsed,
+          isPlayer = entry.isPlayer,
+          textureId = entry.textureId,
+          animalId = entry.animalId
         }
       end
     end

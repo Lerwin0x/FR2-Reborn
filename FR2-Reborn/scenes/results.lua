@@ -14,13 +14,23 @@ if not displayApi or not nativeApi then
   error("Display/native APIs unavailable; run inside Solar2D simulator")
 end
 
--- Helper functions
+local FONT = "assets/fonts/JungleAdventurer.ttf"
+
+local THEME_BACKGROUNDS = {
+  forest = "results_bg_forest",
+  space = "results_bg_space",
+  town = "results_bg_town",
+  tropical = "results_bg_tropical",
+  winter = "results_bg_winter"
+}
+
 local function formatTime(seconds)
-  if not seconds or seconds <= 0 then
-    return "0.00s"
+  local value = tonumber(seconds) or 0
+  if value < 0 then
+    value = 0
   end
-  local minutes = math.floor(seconds / 60)
-  local remainder = seconds % 60
+  local minutes = math.floor(value / 60)
+  local remainder = value - (minutes * 60)
   if minutes > 0 then
     return string.format("%d:%05.2fs", minutes, remainder)
   end
@@ -28,21 +38,33 @@ local function formatTime(seconds)
 end
 
 local function getOrdinal(place)
-  if not place then
+  local number = tonumber(place)
+  if not number or number < 1 then
     return "--"
   end
-  if place == 1 then
-    return "1st"
-  elseif place == 2 then
-    return "2nd"
-  elseif place == 3 then
-    return "3rd"
-  else
-    return place .. "th"
+  local mod100 = number % 100
+  if mod100 >= 11 and mod100 <= 13 then
+    return string.format("%dth", number)
   end
+  local mod10 = number % 10
+  if mod10 == 1 then
+    return string.format("%dst", number)
+  elseif mod10 == 2 then
+    return string.format("%dnd", number)
+  elseif mod10 == 3 then
+    return string.format("%drd", number)
+  end
+  return string.format("%dth", number)
 end
 
--- Button factory matching original game
+local function resolveBackgroundId(theme)
+  if type(theme) ~= "string" then
+    return THEME_BACKGROUNDS.forest
+  end
+  local key = string.lower(theme)
+  return THEME_BACKGROUNDS[key] or THEME_BACKGROUNDS.forest
+end
+
 local function newButton(parent, params)
   local button = asset.newImage({
     parent = parent,
@@ -56,19 +78,29 @@ local function newButton(parent, params)
 
   local function onTouch(event)
     if event.phase == "began" then
-      displayApi.getCurrentStage():setFocus(button)
+      if displayApi.getCurrentStage then
+        displayApi.getCurrentStage():setFocus(button)
+      end
       button.xScale = 0.95
       button.yScale = 0.95
+      button._pressed = true
       return true
     end
 
-    if event.phase == "ended" or event.phase == "cancelled" then
-      displayApi.getCurrentStage():setFocus(nil)
+    if button._pressed and (event.phase == "ended" or event.phase == "cancelled") then
+      if displayApi.getCurrentStage then
+        displayApi.getCurrentStage():setFocus(nil)
+      end
       button.xScale = 1
       button.yScale = 1
-      if event.phase == "ended" and params.onRelease then
-        audio.playSfx("menu_button")
-        params.onRelease()
+      button._pressed = false
+      if event.phase == "ended" then
+        if params.sound then
+          audio.playSfx(params.sound)
+        end
+        if params.onRelease then
+          params.onRelease()
+        end
       end
       return true
     end
@@ -82,211 +114,106 @@ end
 
 function scene:create(event)
   local group = self.view
-  local params = event.params or {}
-  local results = params.results or {}
-  local stats = params.stats or {}
+  local summary = event.params or {}
+  local stats = summary.stats or {}
+  local rankings = summary.results or summary.rankings or {}
+
+  self.summary = summary
+
   local contentWidth = displayApi.contentWidth
   local contentHeight = displayApi.contentHeight
 
-  -- Background
-  local backgrounds = require("engine.backgrounds")
-  local bg = backgrounds.getBlurredBackground()
-  if bg then
-    group:insert(bg)
-  end
+  local bgId = resolveBackgroundId(stats.theme)
+  local background = asset.newImage({
+    parent = group,
+    id = bgId,
+    width = contentWidth,
+    height = contentHeight
+  })
+  background.x = contentWidth * 0.5
+  background.y = contentHeight * 0.5
 
-  -- Results window (centered, larger)
   local panel = asset.newImage({
     parent = group,
     id = "results_panel",
-    width = 450,
-    height = 320
+    width = 460,
+    height = 330
   })
   panel.x = contentWidth * 0.5
   panel.y = contentHeight * 0.5
 
-  -- Position display (inside panel, top)
-  local position = stats.position or 1
-  local positionText = displayApi.newText({
+  local placeText = displayApi.newText({
     parent = group,
-    text = getOrdinal(position),
-    x = contentWidth * 0.5,
-    y = panel.y - 120,
-    font = "assets/fonts/JungleAdventurer.ttf",
-    fontSize = 64
+    text = getOrdinal(stats.place or stats.position or 1),
+    x = panel.x,
+    y = panel.y - (panel.height * 0.5) + 48,
+    font = FONT,
+    fontSize = 60
   })
-  positionText:setFillColor(1, 0.9, 0.2)
+  placeText:setFillColor(1, 0.92, 0.3)
 
-  -- Display all runners/animals with positions
-  local rankings = results.rankings or {}
-  if #rankings > 0 then
-    local rankingGroup = displayApi.newGroup()
-    group:insert(rankingGroup)
-
-    local rankStartY = panel.y - 100
-    local rankSpacing = 45
-
-    for i = 1, math.min(4, #rankings) do
-      local runner = rankings[i]
-      local rankY = rankStartY + (i - 1) * rankSpacing
-
-      -- Rank background
-      local rankBg = displayApi.newRoundedRect(
-        rankingGroup,
-        contentWidth * 0.5,
-        rankY,
-        380,
-        38,
-        6
-      )
-      if runner.id == "player" then
-        rankBg:setFillColor(0.2, 0.4, 0.2, 0.8) -- Green for player
-      else
-        rankBg:setFillColor(0.15, 0.15, 0.2, 0.7)
-      end
-
-      -- Position number
-      local posNum = displayApi.newText({
-        parent = rankingGroup,
-        text = getOrdinal(i),
-        x = contentWidth * 0.5 - 160,
-        y = rankY,
-        font = "assets/fonts/JungleAdventurer.ttf",
-        fontSize = 24
-      })
-      posNum:setFillColor(1, 0.9, 0.2)
-
-      -- Runner name/animal type
-      local runnerName = displayApi.newText({
-        parent = rankingGroup,
-        text = runner.displayName or runner.id or "Runner",
-        x = contentWidth * 0.5 - 60,
-        y = rankY,
-        font = "assets/fonts/JungleAdventurer.ttf",
-        fontSize = 22
-      })
-      runnerName:setFillColor(1, 1, 1)
-      runnerName.anchorX = 0
-
-      -- Runner time
-      local runnerTime = displayApi.newText({
-        parent = rankingGroup,
-        text = formatTime(runner.finishTime or 0),
-        x = contentWidth * 0.5 + 140,
-        y = rankY,
-        font = "assets/fonts/JungleAdventurer.ttf",
-        fontSize = 20
-      })
-      runnerTime:setFillColor(0.8, 0.9, 1)
-    end
+  local trackName = stats.trackName or stats.mapId or ""
+  if trackName ~= "" then
+    local trackText = displayApi.newText({
+      parent = group,
+      text = trackName,
+      x = panel.x,
+      y = placeText.y + 34,
+      font = FONT,
+      fontSize = 22
+    })
+    trackText:setFillColor(0.85, 0.9, 1)
   end
 
-  -- Time display
-  local timeText = displayApi.newText({
+  local timeLabel = displayApi.newText({
+    parent = group,
+    text = "Race Time",
+    x = panel.x,
+    y = panel.y + 20,
+    font = FONT,
+    fontSize = 20
+  })
+  timeLabel:setFillColor(0.8, 0.85, 0.95)
+
+  local timeValue = displayApi.newText({
     parent = group,
     text = formatTime(stats.time),
-    x = contentWidth * 0.5,
-    y = panel.y + 90,
-    font = "assets/fonts/JungleAdventurer.ttf",
+    x = panel.x,
+    y = timeLabel.y + 34,
+    font = FONT,
     fontSize = 32
   })
-  timeText:setFillColor(1, 1, 1)
+  timeValue:setFillColor(1, 1, 1)
 
-  -- Stats in boxes/sections
-  local leftX = panel.x - 140
-  local rightX = panel.x + 140
-  local statsY = panel.y + 50
-
-  -- XP box
-  local xpBg = displayApi.newRoundedRect(
-    group,
-    leftX,
-    statsY,
-    120,
-    80,
-    8
-  )
-  xpBg:setFillColor(0.15, 0.2, 0.25, 0.9)
-
-  local xpLabel = displayApi.newText({
-    parent = group,
-    text = "XP",
-    x = leftX,
-    y = statsY - 20,
-    font = "assets/fonts/JungleAdventurer.ttf",
-    fontSize = 18
-  })
-  xpLabel:setFillColor(0.7, 0.7, 0.7)
-
-  local xpValue = displayApi.newText({
-    parent = group,
-    text = string.format("+%d", stats.xp or 0),
-    x = leftX,
-    y = statsY + 10,
-    font = "assets/fonts/JungleAdventurer.ttf",
-    fontSize = 28
-  })
-  xpValue:setFillColor(0.4, 1, 0.4)
-
-  -- Coins box
-  local coinsBg = displayApi.newRoundedRect(
-    group,
-    rightX,
-    statsY,
-    120,
-    80,
-    8
-  )
-  coinsBg:setFillColor(0.15, 0.2, 0.25, 0.9)
-
-  local coinsLabel = displayApi.newText({
-    parent = group,
-    text = "COINS",
-    x = rightX,
-    y = statsY - 20,
-    font = "assets/fonts/JungleAdventurer.ttf",
-    fontSize = 18
-  })
-  coinsLabel:setFillColor(0.7, 0.7, 0.7)
-
-  local coinsValue = displayApi.newText({
-    parent = group,
-    text = string.format("+%d", stats.coins or 0),
-    x = rightX,
-    y = statsY + 10,
-    font = "assets/fonts/JungleAdventurer.ttf",
-    fontSize = 28
-  })
-  coinsValue:setFillColor(1, 0.93, 0.72)
-
-  -- Buttons
-
-  -- Replay button (bottom center-left)
-  local replayButton = newButton(group, {
+  newButton(group, {
     id = "button_replay",
-    width = 90,
-    height = 52,
-    x = contentWidth * 0.5 - 60,
-    y = contentHeight - 80,
+    width = 100,
+    height = 58,
+    x = panel.x - 80,
+    y = contentHeight - 70,
+    sound = "menu_button",
     onRelease = function()
       composer.removeScene("scenes.race")
       composer.gotoScene("scenes.race", {
         effect = "fade",
         time = 300,
         params = {
-          mapId = stats.mapId
+          mapId = stats.mapId,
+          theme = stats.theme,
+          playerAnimalId = stats.playerAnimalId,
+          botRoster = stats.botRoster
         }
       })
     end
   })
 
-  -- Menu button (bottom center-right)
-  local menuButton = newButton(group, {
+  newButton(group, {
     id = "button_close",
-    width = 90,
-    height = 52,
-    x = contentWidth * 0.5 + 60,
-    y = contentHeight - 80,
+    width = 100,
+    height = 58,
+    x = panel.x + 80,
+    y = contentHeight - 70,
+    sound = "menu_button",
     onRelease = function()
       composer.gotoScene("scenes.menu", {
         effect = "slideRight",
@@ -294,8 +221,6 @@ function scene:create(event)
       })
     end
   })
-
-  self.group = group
 end
 
 function scene:show(event)
@@ -304,11 +229,8 @@ function scene:show(event)
   end
 end
 
-function scene:destroy(event)
-  if self.group and self.group.removeSelf then
-    self.group:removeSelf()
-    self.group = nil
-  end
+function scene:destroy()
+  self.summary = nil
 end
 
 scene:addEventListener("create")
