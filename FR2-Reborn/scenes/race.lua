@@ -184,17 +184,13 @@ function scene:create(event)
   jumpButton.y = contentHeight - 20 -- Fixed alignment from bottom
 
   -- Powerup icon overlay (question mark - centered on powerButton)
-  local powerIcon = displayApi.newImageRect(
-    overlay,
-    "assets/images/game/powerups/icons/mapIcon.png", -- Question mark icon
-    80,
-    80
-  )
+  local powerIcon = displayApi.newRect(overlay, 0, 0, 84, 84)
   powerIcon.anchorX = 0.5
   powerIcon.anchorY = 0.5
-  powerIcon.x = powerButton.x + (powerButton.width * 0.5)  -- Center on button
-  powerIcon.y = powerButton.y - (powerButton.height * 0.5) -- Center on button
-  powerIcon.alpha = 0                                      -- Initially invisible
+  powerIcon.x = powerButton.x + (powerButton.width * 0.5)
+  powerIcon.y = powerButton.y - (powerButton.height * 0.5)
+  powerIcon.isVisible = false
+  powerIcon.currentIcon = nil
 
   -- Pause button (top right) - moved more to left and made functional
   local pauseButton = newActionButton(overlay, {
@@ -336,11 +332,23 @@ function scene:enterFrame(event)
     if self.powerIcon then
       local slot = self.match:getPowerSlot()
       if slot and slot.icon then
-        -- Player has a powerup - show question mark icon
-        self.powerIcon.alpha = 1
+        if self.powerIcon.currentIcon ~= slot.icon then
+          local ok, texture = pcall(asset.requireTexture, slot.icon)
+          if ok and texture then
+            self.powerIcon.fill = { type = "image", filename = texture }
+            self.powerIcon.currentIcon = slot.icon
+          else
+            local fallback = asset.getTexture("hud_power_icon_placeholder")
+            if fallback then
+              self.powerIcon.fill = { type = "image", filename = fallback }
+            end
+            self.powerIcon.currentIcon = nil
+          end
+        end
+        self.powerIcon.isVisible = true
       else
-        -- No powerup - hide icon
-        self.powerIcon.alpha = 0
+        self.powerIcon.isVisible = false
+        self.powerIcon.currentIcon = nil
       end
     end
 

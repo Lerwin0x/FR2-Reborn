@@ -99,10 +99,10 @@ function Runner:consumePowerUp()
   return payload
 end
 
-function Runner:activateSpeedBoost(multiplier, duration)
+function Runner:activateSpeedBoost(multiplier, duration, soundId)
   self.speedMultiplier = multiplier or constants.runner.speedBoostMultiplier
   self.powerTimer = duration or constants.runner.speedBoostDuration
-  audio.playSfx("power_speed")
+  audio.playSfx(soundId or "power_speed")
 end
 
 function Runner:clearPower()

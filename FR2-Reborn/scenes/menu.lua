@@ -4,40 +4,43 @@
 
 local composer = require("composer")
 local audio = require("engine.audio")
+local asset = require("engine.asset")
 
 local scene = composer.newScene()
 local display = rawget(_G, "display")
 
 function scene:create(event)
   local sceneGroup = self.view
+  local contentWidth = display.contentWidth
+  local contentHeight = display.contentHeight
 
-  -- Background - just use the bgMain without the oval overlay
+  -- Background
   local backgrounds = require("engine.backgrounds")
   local bg = backgrounds.getBackground()
   if bg then
     sceneGroup:insert(bg)
   end
 
-  -- Fun Run 2 Logo (top center)
-  local logo = display.newImageRect(
-    sceneGroup,
-    "assets/images/gui/common/logo.png",
-    400,
-    200
-  )
-  logo.x = display.contentWidth * 0.5
-  logo.y = 150
+  -- Fun Run 2 Logo (top center) - scaled to fit
+  local logo = asset.newImage({
+    parent = sceneGroup,
+    id = "menu_logo",
+    width = contentWidth * 0.6,
+    height = 200,
+    x = contentWidth * 0.5,
+    y = 150
+  })
 
   -- Helper function for buttons
   local function newButton(params)
-    local btn = display.newImageRect(
-      sceneGroup,
-      params.image,
-      params.width,
-      params.height
-    )
-    btn.x = params.x
-    btn.y = params.y
+    local btn = asset.newImage({
+      parent = sceneGroup,
+      id = params.id,
+      width = params.width,
+      height = params.height,
+      x = params.x,
+      y = params.y
+    })
 
     local function onTouch(event)
       if event.phase == "ended" then
@@ -52,86 +55,81 @@ function scene:create(event)
     return btn
   end
 
-  -- Play button (main CTA)
+  -- Play button (main CTA) - proper size
   local playBtn = newButton({
-    image = "assets/images/gui/mainMenu/buttonPlayX.png",
+    id = "menu_button_primary",
     width = 245,
     height = 122,
-    x = display.contentWidth * 0.5,
-    y = display.contentHeight * 0.6,
+    x = contentWidth * 0.5,
+    y = contentHeight * 0.6,
     onRelease = function()
       audio.playSfx("menu_button")
       composer.gotoScene("scenes.playMenu", { effect = "slideLeft", time = 300 })
     end
   })
 
-  -- Play button stick (decorative background for play button) - positioned below play button
-  local playStick = display.newImageRect(
-    sceneGroup,
-    "assets/images/gui/mainMenu/buttonPlayStick.png",
-    70,
-    97
-  )
-  playStick.x = display.contentWidth * 0.5
-  playStick.y = display.contentHeight * 0.6 + 100
-
-  -- Settings (top right corner)
+  -- Market (left of play button) - proper size
   newButton({
-    image = "assets/images/gui/mainMenu/buttonSettings.png",
-    width = 85,
-    height = 85,
-    x = display.contentWidth - 50,
-    y = 50,
-    onRelease = function()
-      print("Settings not implemented")
-    end
-  })
-
-  -- Market (left of play button)
-  newButton({
-    image = "assets/images/gui/mainMenu/buttonMarket.png",
+    id = "menu_button_market",
     width = 95,
     height = 95,
-    x = display.contentWidth * 0.26,
-    y = display.contentHeight * 0.6,
+    x = contentWidth * 0.26,
+    y = contentHeight * 0.6,
     onRelease = function()
-      print("Market not implemented")
+      audio.playSfx("menu_button")
+      composer.gotoScene("scenes.shop", { effect = "slideLeft", time = 300 })
     end
   })
 
-  -- Leaderboards (right of play button)
+  -- Friends (bottom center) - proper size
   newButton({
-    image = "assets/images/gui/mainMenu/buttonLeaderboards.png",
+    id = "menu_button_friends",
+    width = 85,
+    height = 85,
+    x = contentWidth * 0.5,
+    y = contentHeight - 50,
+    onRelease = function()
+      audio.playSfx("menu_button")
+      composer.gotoScene("scenes.friends", { effect = "slideLeft", time = 300 })
+    end
+  })
+
+  -- Leaderboards (right of play button) - proper size
+  newButton({
+    id = "menu_button_leaderboards",
     width = 95,
     height = 95,
-    x = display.contentWidth * 0.74,
-    y = display.contentHeight * 0.6,
+    x = contentWidth * 0.74,
+    y = contentHeight * 0.6,
     onRelease = function()
-      print("Leaderboards not implemented")
+      audio.playSfx("menu_button")
+      composer.gotoScene("scenes.comingSoon", { effect = "slideLeft", time = 300 })
     end
   })
 
-  -- Achievements (bottom left)
+  -- Placeholder for upcoming features (left)
   newButton({
-    image = "assets/images/gui/mainMenu/buttonAchievements.png",
-    width = 85,
-    height = 85,
-    x = 50,
-    y = display.contentHeight - 50,
+    id = "button_text_b",
+    width = 150,
+    height = 70,
+    x = contentWidth * 0.2,
+    y = contentHeight - 50,
     onRelease = function()
-      print("Achievements not implemented")
+      audio.playSfx("menu_button")
+      composer.gotoScene("scenes.comingSoon", { effect = "slideLeft", time = 300 })
     end
   })
 
-  -- Friends (bottom right)
+  -- Placeholder for upcoming features (right)
   newButton({
-    image = "assets/images/gui/mainMenu/buttonFriends.png",
-    width = 85,
-    height = 85,
-    x = display.contentWidth - 50,
-    y = display.contentHeight - 50,
+    id = "button_text_b",
+    width = 150,
+    height = 70,
+    x = contentWidth * 0.8,
+    y = contentHeight - 50,
     onRelease = function()
-      print("Friends not implemented")
+      audio.playSfx("menu_button")
+      composer.gotoScene("scenes.comingSoon", { effect = "slideLeft", time = 300 })
     end
   })
 end

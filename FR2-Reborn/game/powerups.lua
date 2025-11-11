@@ -19,7 +19,8 @@ function speedBoost.grant(runner)
 end
 
 function speedBoost.activate(runner)
-  runner:activateSpeedBoost(constants.runner.speedBoostMultiplier, constants.runner.speedBoostDuration)
+  runner:activateSpeedBoost(constants.runner.speedBoostMultiplier, constants.runner.speedBoostDuration,
+  speedBoost.activateSound)
 end
 
 registry[speedBoost.id] = speedBoost
@@ -39,8 +40,7 @@ end
 
 function shield.activate(runner)
   -- Shield: temporary invincibility (use speed boost as placeholder effect)
-  runner:activateSpeedBoost(1.2, 5000) -- Slight speed boost for 5 seconds
-  audio.playSfx(shield.activateSound)
+  runner:activateSpeedBoost(1.2, 5000, shield.activateSound) -- Slight speed boost for 5 seconds
   print("Shield activated - invincible for 5 seconds")
 end
 
@@ -61,8 +61,7 @@ end
 
 function magnet.activate(runner)
   -- Magnet: pull nearby runners (use speed boost as effect)
-  runner:activateSpeedBoost(1.3, 3000) -- Speed boost for 3 seconds
-  audio.playSfx(magnet.activateSound)
+  runner:activateSpeedBoost(1.3, 3000, magnet.activateSound) -- Speed boost for 3 seconds
   print("Magnet activated - pull effect")
 end
 
@@ -83,8 +82,7 @@ end
 
 function lightning.activate(runner)
   -- Lightning: slow other runners (give player speed boost)
-  runner:activateSpeedBoost(1.5, 4000) -- Speed boost for 4 seconds
-  audio.playSfx(lightning.activateSound)
+  runner:activateSpeedBoost(1.5, 4000, lightning.activateSound) -- Speed boost for 4 seconds
   print("Lightning activated - slow effect")
 end
 
@@ -105,8 +103,7 @@ end
 
 function teleport.activate(runner)
   -- Teleport: jump forward (large speed boost)
-  runner:activateSpeedBoost(3.0, 1000) -- Huge speed boost for 1 second
-  audio.playSfx(teleport.activateSound)
+  runner:activateSpeedBoost(3.0, 1000, teleport.activateSound) -- Huge speed boost for 1 second
   print("Teleport activated")
 end
 
@@ -127,8 +124,7 @@ end
 
 function sawblade.activate(runner)
   -- Sawblade/Fireball: attack (speed boost)
-  runner:activateSpeedBoost(1.4, 3500) -- Speed boost for 3.5 seconds
-  audio.playSfx(sawblade.activateSound)
+  runner:activateSpeedBoost(1.4, 3500, sawblade.activateSound) -- Speed boost for 3.5 seconds
   print("Sawblade activated")
 end
 
@@ -149,8 +145,7 @@ end
 
 function decoy.activate(runner)
   -- Become invisible
-  audio.playSfx(decoy.activateSound)
-  runner:activateSpeedBoost(1.5, 3000) -- Slight speed boost while invisible
+  runner:activateSpeedBoost(1.5, 3000, decoy.activateSound) -- Slight speed boost while invisible
   print("Decoy/Ninja activated")
 end
 
@@ -171,8 +166,7 @@ end
 
 function bearTrap.activate(runner)
   -- Bear trap: defensive (speed boost)
-  runner:activateSpeedBoost(1.3, 3000) -- Speed boost for 3 seconds
-  audio.playSfx(bearTrap.activateSound)
+  runner:activateSpeedBoost(1.3, 3000, bearTrap.activateSound) -- Speed boost for 3 seconds
   print("Bear trap placed")
 end
 

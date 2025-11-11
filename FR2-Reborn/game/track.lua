@@ -255,9 +255,21 @@ local function computeTilesetEntries(mapData, themeConfig)
       end
       local tileCount = tileset.tilecount or (columns * rows)
       local imageWidth = tileset.imagewidth or
-      (margin * 2 + (columns * tileWidth) + (spacing * math.max(0, columns - 1)))
+          (margin * 2 + (columns * tileWidth) + (spacing * math.max(0, columns - 1)))
       local imageHeight = tileset.imageheight or (margin * 2 + (rows * tileHeight) + (spacing * math.max(0, rows - 1)))
-      local imagePath = tileset.image or asset.getTexture(config.sheet)
+      local imagePath = tileset.image
+      if imagePath and imagePath ~= "" then
+        if not fileExists(imagePath) then
+          imagePath = nil
+        end
+      end
+      if (not imagePath or imagePath == "") and config and config.sheet then
+        imagePath = asset.getTexture(config.sheet)
+      end
+      if not imagePath or imagePath == "" then
+        error(string.format("Tileset '%s' in map '%s' has no resolvable texture", tostring(tileset.name),
+        tostring(mapData.properties and mapData.properties.id)))
+      end
       local frames = {}
       local produced = 0
       for rowIndex = 0, rows - 1 do
