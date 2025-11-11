@@ -1,7 +1,6 @@
 local constants = require("game.constants")
 local asset = require("engine.asset")
 local audio = require("engine.audio")
-local spineRuntime = require("engine.spineRuntime")
 
 local displayApi = rawget(_G, "display")
 
@@ -34,55 +33,30 @@ local function createSprite(params)
   local avatarHeight = params.height or constants.runner.height
   local visualHeight = avatarHeight
 
-  local spineInstance
-  if params.spinePath then
-    local ok, instance = pcall(spineRuntime.instantiate, {
-      path = params.spinePath,
-      scale = params.spineScale or 1,
-      animation = params.spineAnimation or params.spineInitialAnimation or "idle",
-      loop = params.spineLoop
-    })
-    if ok and instance then
-      spineInstance = instance
-      instance.group.x = 0
-      instance.group.y = 0
-      group:insert(instance.group)
-      group.avatar = instance.group
-      group.spineInstance = instance
-      visualHeight = params.spineVisualHeight or visualHeight
-    else
-      spineInstance = nil
-      params.spinePath = nil
-      print("[runner] Failed to load spine avatar:", instance)
-    end
-  end
-
   local avatar
-  if not spineInstance then
-    local avatarId = params.textureId or "runner_player"
-    do
-      local ok, image = pcall(asset.newImage, {
-        parent = group,
-        id = avatarId,
-        width = avatarWidth,
-        height = avatarHeight
-      })
-      if ok and image then
-        avatar = image
-      else
-        avatar = displayApi.newRoundedRect(group, 0, 0, avatarWidth, avatarHeight, 18)
-        avatar:setFillColor(0.25, 0.75, 0.35)
-        avatar.anchorY = 1
-      end
+  local avatarId = params.textureId or "runner_player"
+  do
+    local ok, image = pcall(asset.newImage, {
+      parent = group,
+      id = avatarId,
+      width = avatarWidth,
+      height = avatarHeight
+    })
+    if ok and image then
+      avatar = image
+    else
+      avatar = displayApi.newRoundedRect(group, 0, 0, avatarWidth, avatarHeight, 18)
+      avatar:setFillColor(0.25, 0.75, 0.35)
+      avatar.anchorY = 1
     end
-    avatar.anchorY = 1
-    avatar.x = 0
-    avatar.y = 0
-    if params.tint and avatar.setFillColor then
-      avatar:setFillColor(unpackFn(params.tint))
-    end
-    group.avatar = avatar
   end
+  avatar.anchorY = 1
+  avatar.x = 0
+  avatar.y = 0
+  if params.tint and avatar.setFillColor then
+    avatar:setFillColor(unpackFn(params.tint))
+  end
+  group.avatar = avatar
 
   local arrow
   if params.showArrow ~= false then
@@ -105,7 +79,7 @@ local function createSprite(params)
 
   group.arrow = arrow
 
-  return group, spineInstance
+  return group
 end
 
 function Runner:queueJump()
@@ -139,10 +113,6 @@ end
 function Runner:update(dt, track)
   if self.finished then
     return
-  end
-
-  if self.spineInstance then
-    spineRuntime.update(self.spineInstance, dt)
   end
 
   if self.jumpBuffer > 0 then
@@ -219,14 +189,8 @@ function Runner:update(dt, track)
 
   if self.velocityX > 0 then
     self.view.xScale = 1
-    if self.spineInstance then
-      self.spineInstance.group.xScale = 1
-    end
   elseif self.velocityX < 0 then
     self.view.xScale = -1
-    if self.spineInstance then
-      self.spineInstance.group.xScale = -1
-    end
   end
 end
 
@@ -245,9 +209,6 @@ function Runner:reset(startX, startY)
   self.view.x = startX
   self.view.y = startY + (self.renderOffsetY or 0)
   self.view.xScale = 1
-  if self.spineInstance then
-    self.spineInstance.group.xScale = 1
-  end
 end
 
 function M.newRunner(params)
@@ -255,9 +216,8 @@ function M.newRunner(params)
   local runner = setmetatable({}, Runner)
   runner.id = params.id or "player"
   runner.displayName = params.displayName or params.name or runner.id
-  local sprite, spineInstance = createSprite(params)
+  local sprite = createSprite(params)
   runner.view = sprite
-  runner.spineInstance = spineInstance
   runner.position = {
     x = 0,
     y = 0
@@ -284,9 +244,6 @@ function M.newRunner(params)
   runner.showArrow = params.showArrow ~= false
   runner.avatar = runner.view and runner.view.avatar
   runner.arrowView = runner.view and runner.view.arrow
-  if runner.spineInstance then
-    runner.avatar = runner.spineInstance.group
-  end
 
   return runner
 end
