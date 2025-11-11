@@ -95,6 +95,15 @@ local sheets = {}
 
 local function registerThemeSheets(theme)
   local basePath = string.format("assets/lua/map/assets/%s/", theme)
+  if not textures[theme .. "_tiles"] then
+    textures[theme .. "_tiles"] = basePath .. "tiles.png"
+  end
+  if not textures[theme .. "_props"] then
+    textures[theme .. "_props"] = basePath .. "props.png"
+  end
+  if not textures[theme .. "_special"] then
+    textures[theme .. "_special"] = basePath .. "animatedTiles.png"
+  end
   sheets[theme .. "_tiles"] = {
     filename = basePath .. "tiles.png",
     dynamic = true

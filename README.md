@@ -14,49 +14,6 @@ Fun Run 2: Reborn is a fully reimagined version of the beloved multiplayer racin
 
 ---
 
-##  Features
-
-###  **Core Gameplay**
-- ✅ **Classic side-scrolling racing** with smooth physics
-- ✅ **Multiplayer support** for up to 4 players (local networking)
-- ✅ **Character abilities** - Jump, double jump, slide, and wall jump
-- ✅ **Dynamic power-ups** - Lightning, speed boost, traps, and more
-- ✅ **Environmental hazards** - Spikes, water, moving platforms
-- ✅ **Multiple level themes** - Forest, Desert, City, and Ice worlds
-
-###  **Visuals & Audio**
-- ✅ **Enhanced graphics** with smooth animations
-- ✅ **9 unique characters** with different rarities and abilities
-- ✅ **Comprehensive sound system** with music and effects
-- ✅ **Visual feedback** for actions, hits, and achievements
-- ✅ **Modern UI design** with intuitive navigation
-
-###  **Progression System**
-- ✅ **Dual currency system** - Coins and Gems
-- ✅ **Character shop** with unlockable racers
-- ✅ **Cosmetic items** - Hats, trails, and customizations
-- ✅ **Power-up packs** for strategic gameplay
-- ✅ **Achievement system** with unlock rewards
-- ✅ **Level completion tracking** and statistics
-
-###  **Multiplayer & Social**
-- ✅ **Local multiplayer** with device discovery
-- ✅ **Real-time synchronization** of all game events
-- ✅ **Chat system** for player communication
-- ✅ **Connection quality monitoring** and timeout handling
-- 🚧 **Online multiplayer** (planned for future updates)
-- 🚧 **Global leaderboards** (planned)
-
-###  **Technical Features**
-- ✅ **Modular architecture** for easy expansion
-- ✅ **Comprehensive save system** with data validation
-- ✅ **Asset management** with organized directory structure
-- ✅ **Performance optimization** for mobile devices
-- ✅ **Error handling** and graceful degradation
-- ✅ **Development tools** and testing scripts
-
----
-
 ##  Quick Start
 
 ### **Requirements**
@@ -69,21 +26,17 @@ Fun Run 2: Reborn is a fully reimagined version of the beloved multiplayer racin
 
 ### **Basic Controls**
 - **Jump:** Tap screen / Spacebar
-- **Double Jump:** Tap again while airborne
-- **Slide:** Swipe down / Down arrow
 - **Use Power-up:** Tap power-up button when available
 
 ### **Game Modes**
 1. **Single Player:** Race against AI opponents
 2. **Local Multiplayer:** Connect devices on same network
-3. **Time Trial:** Beat your best times on each level
 
 ### **Power-ups**
 - **Lightning:** Stun nearby opponents
 - **Speed Boost:** Temporary speed increase
 - **Shield:** Protect from one attack
 - **Magnet:** Attract nearby collectibles
-- **Fire Trail:** Leave damaging trail behind you
 
 ### **Progression**
 - Complete races to earn **coins** and **experience**
@@ -132,31 +85,6 @@ We welcome contributions! Please:
 - **[JSON](https://docs.coronalabs.com/api/library/json/)** — Data serialization
 - **[Socket](https://docs.coronalabs.com/plugin/socket/)** — Network communication
 - **[ImageMagick](https://imagemagick.org/)** — Placeholder asset generation
-
----
-
-##  Roadmap
-
-### **Version 1.0 (Current)**
-- ✅ Core gameplay mechanics
-- ✅ Local multiplayer
-- ✅ Character and progression systems
-- ✅ Complete UI implementation
-- ✅ Save system integration
-
-### **Version 1.1 (Next)**
-- 🚧 Audio system integration
-- 🚧 Performance optimization
-- 🚧 Achievement system completion
-- 🚧 Final asset replacement
-- 🚧 Mobile testing and optimization
-
-### **Version 2.0 (Future)**
-- 📋 Online multiplayer with dedicated servers
-- 📋 Global leaderboards and rankings
-- 📋 Spectator mode
-- 📋 Custom level editor
-- 📋 Community marketplace for levels/mods
 
 ---
 

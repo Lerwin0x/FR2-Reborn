@@ -231,19 +231,32 @@ local function computeTilesetEntries(mapData, themeConfig)
       local tileHeight = tileset.tileheight or mapData.tileheight
       local spacing = tileset.spacing or 0
       local margin = tileset.margin or 0
-      local imageWidth = tileset.imagewidth or tileWidth
-      local imageHeight = tileset.imageheight or tileHeight
       local columns = tileset.columns
       if not columns or columns <= 0 then
-        columns = math.max(1, math.floor((imageWidth - (margin * 2) + spacing) / (tileWidth + spacing)))
+        local usableWidth = (tileset.imagewidth or 0) - (margin * 2)
+        if usableWidth > 0 then
+          columns = math.max(1, math.floor((usableWidth + spacing) / (tileWidth + spacing)))
+        end
+      end
+      if not columns or columns <= 0 then
+        columns = math.max(1, math.floor((mapData.width * tileWidth + spacing) / (tileWidth + spacing)))
       end
       local rows
       if tileset.tilecount then
-        rows = math.ceil(tileset.tilecount / columns)
+        rows = math.max(1, math.ceil(tileset.tilecount / columns))
       else
-        rows = math.max(1, math.floor((imageHeight - (margin * 2) + spacing) / (tileHeight + spacing)))
+        local usableHeight = (tileset.imageheight or 0) - (margin * 2)
+        if usableHeight > 0 then
+          rows = math.max(1, math.floor((usableHeight + spacing) / (tileHeight + spacing)))
+        end
+      end
+      if not rows or rows <= 0 then
+        rows = math.max(1, math.floor((mapData.height * tileHeight + spacing) / (tileHeight + spacing)))
       end
       local tileCount = tileset.tilecount or (columns * rows)
+      local imageWidth = tileset.imagewidth or
+      (margin * 2 + (columns * tileWidth) + (spacing * math.max(0, columns - 1)))
+      local imageHeight = tileset.imageheight or (margin * 2 + (rows * tileHeight) + (spacing * math.max(0, rows - 1)))
       local imagePath = tileset.image or asset.getTexture(config.sheet)
       local frames = {}
       local produced = 0
@@ -553,7 +566,7 @@ local function renderObjectLayer(layer, theme, propertyScale, groups)
   end
 end
 
-local function renderTileLayer(layer, tilesets, tileWidth, tileHeight, parentGroup)
+local function renderTileLayer(layer, tilesets, tileWidth, tileHeight, parentGroup, scale)
   if not layer or not layer.data or not tilesets then
     return
   end
@@ -564,6 +577,9 @@ local function renderTileLayer(layer, tilesets, tileWidth, tileHeight, parentGro
   local layerOffsetX = layer.offsetx or 0
   local layerOffsetY = layer.offsety or 0
   local layerOpacity = layer.opacity or 1
+  local tileScale = scale or 1
+  local drawTileWidth = tileWidth * tileScale
+  local drawTileHeight = tileHeight * tileScale
   for index = 1, #layer.data do
     local rawId = layer.data[index]
     if rawId and rawId ~= 0 then
@@ -574,13 +590,13 @@ local function renderTileLayer(layer, tilesets, tileWidth, tileHeight, parentGro
         local sheet = tilesetEntry.sheet
         local column = ((index - 1) % layerWidth) + 1
         local row = math.floor((index - 1) / layerWidth) + 1
-        local tileDisplayWidth = tilesetEntry.tileWidth or tileWidth
-        local tileDisplayHeight = tilesetEntry.tileHeight or tileHeight
+        local tileDisplayWidth = (tilesetEntry.tileWidth or tileWidth) * tileScale
+        local tileDisplayHeight = (tilesetEntry.tileHeight or tileHeight) * tileScale
         local tile = displayApi.newImageRect(parentGroup, sheet, frame, tileDisplayWidth, tileDisplayHeight)
         tile.anchorX = 0.5
         tile.anchorY = 0.5
-        tile.x = (column - 0.5) * tileWidth + layerOffsetX + (tilesetEntry.offsetX or 0)
-        tile.y = (row - 0.5) * tileHeight + layerOffsetY + (tilesetEntry.offsetY or 0)
+        tile.x = (column - 0.5) * drawTileWidth + layerOffsetX + ((tilesetEntry.offsetX or 0) * tileScale)
+        tile.y = (row - 0.5) * drawTileHeight + layerOffsetY + ((tilesetEntry.offsetY or 0) * tileScale)
         tile.alpha = layerOpacity
         applyTileFlips(tile, tilesetEntry.flipX, tilesetEntry.flipY, flippedH, flippedV, flippedD)
       end
@@ -747,7 +763,7 @@ function M.newTrack(mapId)
         if layer.type == "tilelayer" and layer.data then
           local layerGroup = displayApi.newGroup()
           tilesGroup:insert(layerGroup)
-          renderTileLayer(layer, tilesetEntries, tileWidth, tileHeight, layerGroup)
+          renderTileLayer(layer, tilesetEntries, tileWidth, tileHeight, layerGroup, propertyScale)
         elseif layer.type == "objectgroup" then
           renderObjectLayer(layer, theme, propertyScale, objectGroupTargets)
         end
